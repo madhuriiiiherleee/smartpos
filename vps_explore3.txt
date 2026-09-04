@@ -1,0 +1,67 @@
+=== nginx conf for this app ===
+/etc/nginx/sites-enabled/anegudde
+=== frontend-dist ===
+lrwxrwxrwx 1 root root 44 Aug 27 12:57 frontend-dist -> /var/www/inventory-management/front end/dist
+=== diff stat: server uncommitted vs HEAD ===
+ backend/app/models.py                              |  21 +-
+ backend/app/numbering.py                           |   5 +
+ backend/app/routers/auth.py                        |  42 +-
+ backend/app/routers/dashboard.py                   |  87 ++-
+ backend/app/routers/master.py                      |  81 ++-
+ backend/app/routers/purchase.py                    |  16 +-
+ backend/app/routers/reports.py                     |  84 ++-
+ backend/app/routers/sales.py                       |  39 +-
+ backend/app/routers/sales_order.py                 |   6 +
+ backend/app/schemas.py                             |   9 +
+ backend/app/schemas_auth.py                        |  18 +
+ backend/app/schemas_master.py                      |  34 +-
+ backend/app/schemas_sales.py                       |   4 +
+ backend/app/seed.py                                |   2 +-
+ front end/index.html                               |   2 +-
+ front end/public/favicon.svg                       |   1 -
+ front end/src/App.jsx                              |  30 +-
+ front end/src/api/auth.js                          |  18 +
+ front end/src/api/dashboard.js                     |   4 +-
+ front end/src/api/master.js                        |   4 +
+ front end/src/api/reports.js                       |   9 +-
+ front end/src/components/CustomerBalanceTable.jsx  |  60 --
+ .../src/components/FinancialYearWelcomeModal.jsx   |  41 --
+ front end/src/components/PurchaseSalesChart.jsx    |   2 +-
+ front end/src/components/Sidebar.jsx               |  46 +-
+ front end/src/components/SummaryCard.jsx           |   6 -
+ front end/src/components/master/DataTable.jsx      | 116 ++--
+ front end/src/components/master/FormField.jsx      |   2 +-
+ front end/src/components/master/PageToolbar.jsx    |  27 +-
+ .../src/components/purchase/PurchaseItemForm.jsx   |  36 +-
+ .../src/components/purchase/PurchaseItemsTable.jsx | 130 ++--
+ front end/src/components/sales/SalesItemForm.jsx   |  37 +-
+ front end/src/components/sales/SalesItemsTable.jsx | 148 ++---
+ front end/src/context/AuthContext.jsx              |   6 +-
+ front end/src/index.css                            |  26 +
+ front end/src/lib/format.js                        |  11 +
+ front end/src/pages/CompanyProfilePage.jsx         |  24 +-
+ front end/src/pages/Dashboard.jsx                  |  90 ++-
+ front end/src/pages/LoginPage.jsx                  |  88 +--
+ .../src/pages/master-settings/CategoryPage.jsx     |  25 +-
+ .../src/pages/master-settings/CustomerPage.jsx     | 213 ++-----
+ .../pages/master-settings/FinancialYearPage.jsx    |  17 +-
+ .../pages/master-settings/MasterSettingsLayout.jsx |  47 --
+ .../pages/master-settings/ProductDetailsPage.jsx   | 279 --------
+ .../src/pages/master-settings/ProductPage.jsx      | 710 +++++++++++++++------
+ front end/src/pages/master-settings/VendorPage.jsx |  25 +-
+ .../src/pages/purchase/ManagePurchasePage.jsx      |  16 +-
+ front end/src/pages/purchase/PurchaseEntryPage.jsx |  55 +-
+ front end/src/pages/reports/GstReportPage.jsx      | 118 +++-
+ front end/src/pages/sales/DeliveryListPage.jsx     |  20 +-
+ front end/src/pages/sales/SalesEntryPage.jsx       |  55 +-
+ front end/src/pages/sales/SalesInvoicePage.jsx     |  27 +-
+ front end/src/pages/sales/SalesOrderEntryPage.jsx  |  50 +-
+ front end/src/pages/sales/SalesReturnPage.jsx      |  18 +-
+ front end/src/pages/sales/ViewSalesOrderPage.jsx   |  52 +-
+ front end/src/pages/sales/ViewSalesPage.jsx        | 127 +++-
+ front end/vite.config.js                           |   2 +-
+ 57 files changed, 1858 insertions(+), 1410 deletions(-)
+=== last modified times on a few changed files ===
+-rw-r--r-- 1 197611 197121 18722 Sep  1 10:02 backend/app/models.py
+-rw-r--r-- 1 197611 197121  5457 Aug 28 11:56 backend/app/routers/dashboard.py
+-rw-r--r-- 1 197611 197121   534 Aug 28 15:41 front end/vite.config.js

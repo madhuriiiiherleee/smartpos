@@ -1,0 +1,45 @@
+srv1701204
+ 10:50:10 up 36 days, 15:28,  1 user,  load average: 0.29, 0.28, 0.16
+---git repos---
+/var/www/inventory-management/.git
+/var/www/anegudde/.git
+---processes---
+root      746483  0.1  1.9 288000 158764 ?       Ssl  06:25   0:25 /var/www/anegudde/backend/.venv/bin/python3 /var/www/anegudde/backend/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 2509
+root      746503  0.0  1.6 187272 135272 ?       Ss   06:25   0:14 /var/www/paaka-backend-uat/venv/bin/python3 /var/www/paaka-backend-uat/venv/bin/uvicorn main:app --host 127.0.0.1 --port 2526 --workers 2
+root      750311  0.0  0.3  38300 28252 ?        Ss   10:05   0:02 /var/www/inventory-management/backend/.venv/bin/python3 /var/www/inventory-management/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8002 --workers 2
+root      753786  0.0  0.0  12016  2784 ?        Ss   10:48   0:00 nginx: master process /usr/sbin/nginx -g daemon on; master_process on;
+www-data  753787  0.0  0.0  13792  6496 ?        S    10:48   0:00 nginx: worker process
+www-data  753788  0.0  0.0  13792  6368 ?        S    10:48   0:00 nginx: worker process
+root      753898  2.8  1.7 190960 139132 ?       Ss   10:48   0:02 /var/www/paaka-backend/venv/bin/python3 /var/www/paaka-backend/venv/bin/uvicorn main:app --host 127.0.0.1 --port 2524 --workers 2
+---systemd services (filtered)---
+anegudde-backend.service             loaded active running Anegudde Inventory Ba
+containerd.service                   loaded active running containerd container 
+cron.service                         loaded active running Regular background pr
+dbus.service                         loaded active running D-Bus System Message 
+docker.service                       loaded active running Docker Application Co
+getty@tty1.service                   loaded active running Getty on tty1
+inventory-management-backend.service loaded active running Inventory Management 
+ModemManager.service                 loaded active running Modem Manager
+monarx-agent.service                 loaded active running Monarx Agent - Securi
+multipathd.service                   loaded active running Device-Mapper Multipa
+nginx.service                        loaded active running A high performance we
+paaka-uat.service                    loaded active running PAAKA Catering FastAP
+paaka.service                        loaded active running PAAKA Catering FastAP
+packagekit.service                   loaded active running PackageKit Daemon
+polkit.service                       loaded active running Authorization Manager
+postgresql@16-main.service           loaded active running PostgreSQL Cluster 16
+qemu-guest-agent.service             loaded active running QEMU Guest Agent
+rsyslog.service                      loaded active running System Logging Servic
+serial-getty@ttyS0.service           loaded active running Serial Getty on ttyS0
+ssh.service                          loaded active running OpenBSD Secure Shell 
+systemd-journald.service             loaded active running Journal Service
+systemd-logind.service               loaded active running User Login Management
+systemd-networkd.service             loaded active running Network Configuration
+systemd-resolved.service             loaded active running Network Name Resoluti
+systemd-timesyncd.service            loaded active running Network Time Synchron
+systemd-udevd.service                loaded active running Rule-based Manager fo
+udisks2.service                      loaded active running Disk Manager
+unattended-upgrades.service          loaded active running Unattended Upgrades S
+user@0.service                       loaded active running User Manager for UID 
+---pm2---
+bash: line 1: pm2: command not found

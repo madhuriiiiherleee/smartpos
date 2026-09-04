@@ -1,0 +1,84 @@
+=== git status ===
+On branch main
+Your branch is up to date with 'origin/main'.
+
+Changes not staged for commit:
+  (use "git add/rm <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   backend/app/models.py
+	modified:   backend/app/numbering.py
+	modified:   backend/app/routers/auth.py
+	modified:   backend/app/routers/dashboard.py
+	modified:   backend/app/routers/master.py
+	modified:   backend/app/routers/purchase.py
+	modified:   backend/app/routers/reports.py
+	modified:   backend/app/routers/sales.py
+	modified:   backend/app/routers/sales_order.py
+	modified:   backend/app/schemas.py
+	modified:   backend/app/schemas_auth.py
+	modified:   backend/app/schemas_master.py
+	modified:   backend/app/schemas_sales.py
+	modified:   backend/app/seed.py
+	modified:   front end/index.html
+	deleted:    front end/public/favicon.svg
+	modified:   front end/src/App.jsx
+	modified:   front end/src/api/auth.js
+	modified:   front end/src/api/dashboard.js
+	modified:   front end/src/api/master.js
+	modified:   front end/src/api/reports.js
+	deleted:    front end/src/components/CustomerBalanceTable.jsx
+	deleted:    front end/src/components/FinancialYearWelcomeModal.jsx
+	modified:   front end/src/components/PurchaseSalesChart.jsx
+	modified:   front end/src/components/Sidebar.jsx
+	modified:   front end/src/components/SummaryCard.jsx
+	modified:   front end/src/components/master/DataTable.jsx
+	modified:   front end/src/components/master/FormField.jsx
+	modified:   front end/src/components/master/PageToolbar.jsx
+	modified:   front end/src/components/purchase/PurchaseItemForm.jsx
+	modified:   front end/src/components/purchase/PurchaseItemsTable.jsx
+	modified:   front end/src/components/sales/SalesItemForm.jsx
+	modified:   front end/src/components/sales/SalesItemsTable.jsx
+	modified:   front end/src/context/AuthContext.jsx
+	modified:   front end/src/index.css
+	modified:   front end/src/lib/format.js
+	modified:   front end/src/pages/CompanyProfilePage.jsx
+	modified:   front end/src/pages/Dashboard.jsx
+	modified:   front end/src/pages/LoginPage.jsx
+	modified:   front end/src/pages/master-settings/CategoryPage.jsx
+	modified:   front end/src/pages/master-settings/CustomerPage.jsx
+	modified:   front end/src/pages/master-settings/FinancialYearPage.jsx
+	deleted:    front end/src/pages/master-settings/MasterSettingsLayout.jsx
+	deleted:    front end/src/pages/master-settings/ProductDetailsPage.jsx
+	modified:   front end/src/pages/master-settings/ProductPage.jsx
+	modified:   front end/src/pages/master-settings/VendorPage.jsx
+	modified:   front end/src/pages/purchase/ManagePurchasePage.jsx
+	modified:   front end/src/pages/purchase/PurchaseEntryPage.jsx
+	modified:   front end/src/pages/reports/GstReportPage.jsx
+	modified:   front end/src/pages/sales/DeliveryListPage.jsx
+	modified:   front end/src/pages/sales/SalesEntryPage.jsx
+	modified:   front end/src/pages/sales/SalesInvoicePage.jsx
+	modified:   front end/src/pages/sales/SalesOrderEntryPage.jsx
+	modified:   front end/src/pages/sales/SalesReturnPage.jsx
+	modified:   front end/src/pages/sales/ViewSalesOrderPage.jsx
+	modified:   front end/src/pages/sales/ViewSalesPage.jsx
+	modified:   front end/vite.config.js
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	backend/app/migrate_add_hsn_code.py
+	backend/app/migrate_packing_sizes.py
+	front end/public/favicon.png
+	front end/src/pages/ProfileSettingsPage.jsx
+	frontend-dist
+
+no changes added to commit (use "git add" and/or "git commit -a")
+=== git log -5 ===
+7eef118 Make purchase invoice number user-entered instead of auto-generated
+5f97b74 Make app mobile-responsive and add /smartPOS base path support
+0230eb4 Replace single-line address fields with structured Address Line 1/2, City, State, Pincode
+8a3b735 Fix README: B2B's local backend port is 8000, not 8001
+7e1504a Initial commit: Inventory Management system
+=== remote ===
+origin	https://github.com/harshithas-hub/inventory-management.git (fetch)
+origin	https://github.com/harshithas-hub/inventory-management.git (push)
+=== branch vs origin ===

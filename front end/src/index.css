@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
+
+  /* Brand blue sampled directly from the smartPOS logo (#11739D) */
+  --color-brand-50: #edf8fd;
+  --color-brand-100: #d6effb;
+  --color-brand-200: #a8def6;
+  --color-brand-300: #6cc8ef;
+  --color-brand-400: #30b1e9;
+  --color-brand-500: #1591c6;
+  --color-brand-600: #11739d;
+  --color-brand-700: #0d5b7c;
+  --color-brand-800: #0a4761;
+  --color-brand-900: #08394e;
+  --color-brand-950: #052533;
+}
+
+body {
+  margin: 0;
+  background-color: #f3f4f8;
+  font-family: var(--font-sans);
+}
+
+input[type='number'] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  appearance: none;
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+@media print {
+  /* Zero @page margins so Chrome/Firefox have no room to draw their
+     default print header/footer (URL, date, page number) — the visual
+     margin invoice pages relied on here is re-applied as padding on the
+     printed content itself (see print:p-[…] on invoice pages). */
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  @page a4-page {
+    size: A4;
+    margin: 0;
+  }
+
+  @page a5-page {
+    size: A5;
+    margin: 0;
+  }
+
+  .invoice-print-a4 {
+    page: a4-page;
+  }
+
+  .invoice-print-a5 {
+    page: a5-page;
+    zoom: 0.72;
+  }
+}

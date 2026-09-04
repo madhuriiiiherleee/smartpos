@@ -1,0 +1,86 @@
+server {
+    listen 80;
+    server_name 187.127.173.27;
+
+    location / {
+        root /var/www/anegudde/frontend/dist;
+        index index.html;
+        try_files $uri $uri/ /index.html;
+    }
+
+    location /paaka/ {
+        proxy_pass http://127.0.0.1:2524/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /paaka/uploads/ {
+        alias /var/www/paaka-backend/uploads/;
+    }
+
+    location ~* \.html$ {
+        root /var/www/anegudde/frontend/dist;
+        add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0";
+    }
+
+    location /api/ {
+        proxy_pass http://localhost:2509/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+
+    location /uploads {
+        alias /var/www/anegudde/backend/uploads;
+    }
+
+    location = /paaka-admin {
+        return 301 /paaka-admin/;
+    }
+
+    location = /paaka-admin-uat {
+        return 301 /paaka-admin-uat/;
+    }
+
+    location ^~ /paaka-admin/ {
+        alias /var/www/paaka-admin/;
+        index index.html;
+        try_files $uri $uri/ /paaka-admin/index.html;
+        add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0";
+    }
+
+    location /paaka-uat/ {
+        proxy_pass http://127.0.0.1:2526/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /paaka-uat/uploads/ {
+        alias /var/www/paaka-backend-uat/uploads/;
+    }
+
+    location ^~ /paaka-admin-uat/ {
+        alias /var/www/paaka-admin-uat/;
+        try_files $uri $uri/ /paaka-admin-uat/index.html;
+        add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0";
+    }
+
+    location = /smartpos {
+        return 301 /smartpos/;
+    }
+
+    location ^~ /smartpos/ {
+        proxy_pass http://127.0.0.1:8083/smartpos/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+
+
