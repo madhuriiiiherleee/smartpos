@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import {Plus} from 'lucide-react'
+import {Plus, FileText, ShoppingCart, List, Calculator} from 'lucide-react'
 import {useNavigate, useParams, Link} from 'react-router-dom'
 import { customersApi, productsApi } from '../../api/master'
 import { extractErrorMessage, salesOrdersApi } from '../../api/sales'
@@ -172,97 +172,122 @@ export default function SalesOrderEntryPage() {
 
   return (
     <div>
-      <main className="space-y-5 px-6 py-6">
+      <main className="space-y-6 px-6 py-6 max-w-7xl mx-auto">
         <PageHeader isEdit={isEdit} />
         {error && (
           <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">{error}</div>
         )}
 
-        <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-900/5">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <div>
-              <FieldLabel required>Order Date</FieldLabel>
-              <TextInput
-                type="date"
-                value={header.orderDate}
-                onChange={(e) => setHeader({ ...header, orderDate: e.target.value })}
-                disabled={isEdit}
-                className={isEdit ? 'cursor-not-allowed bg-slate-50 text-slate-500' : ''}
-              />
-            </div>
-            <div>
-              <FieldLabel required>Customer Name</FieldLabel>
-              <Select
-                value={header.customerId}
-                onChange={(e) => handleCustomerChange(e.target.value)}
-              >
-                <option value="" disabled>Select customer</option>
-                {customers.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name} {c.gst_number ? `(${c.gst_number})` : ''}
-                  </option>
-                ))}
-              </Select>
-            </div>
-            <div>
-              <FieldLabel>Sales Type</FieldLabel>
-              <Select
-                value={header.salesType}
-                onChange={(e) => setHeader({ ...header, salesType: e.target.value })}
-              >
-                <option value="Cash">Cash</option>
-                <option value="Credit">Credit</option>
-              </Select>
-            </div>
-            <div>
-              <FieldLabel>Order Number</FieldLabel>
-              <TextInput value={orderNo} readOnly className="cursor-not-allowed bg-slate-50 text-slate-500" />
+        {/* Section 1: Invoice Details */}
+        <section>
+          <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-500">
+            <FileText size={16} className="text-brand-500" /> Order Details
+          </div>
+          <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-900/5">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              <div>
+                <FieldLabel required>Order Date</FieldLabel>
+                <TextInput
+                  type="date"
+                  value={header.orderDate}
+                  onChange={(e) => setHeader({ ...header, orderDate: e.target.value })}
+                  disabled={isEdit}
+                  className={isEdit ? 'cursor-not-allowed bg-slate-50 text-slate-500' : ''}
+                />
+              </div>
+              <div>
+                <FieldLabel required>Customer Name</FieldLabel>
+                <Select
+                  value={header.customerId}
+                  onChange={(e) => handleCustomerChange(e.target.value)}
+                >
+                  <option value="" disabled>Select customer</option>
+                  {customers.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} {c.gst_number ? `(${c.gst_number})` : ''}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+              <div>
+                <FieldLabel>Sales Type</FieldLabel>
+                <Select
+                  value={header.salesType}
+                  onChange={(e) => setHeader({ ...header, salesType: e.target.value })}
+                >
+                  <option value="Cash">Cash</option>
+                  <option value="Credit">Credit</option>
+                </Select>
+              </div>
+              <div>
+                <FieldLabel>Order Number</FieldLabel>
+                <TextInput value={orderNo} readOnly className="cursor-not-allowed bg-slate-50 text-slate-500 font-medium" />
+              </div>
             </div>
           </div>
-        </div>
+        </section>
 
-        <SalesItemForm
-          key={header.customerId}
-          customerMargin={customerMargin}
-          onAdd={handleAddItem}
-          editingItem={editingIndex != null ? items[editingIndex] : null}
-          onUpdate={handleUpdateItem}
-          onCancelEdit={handleCancelEdit}
-        />
-
-        <ItemsTable
-          items={items}
-          onRemove={handleRemoveItem}
-          onEdit={handleEditItem}
-          priceFieldName="price"
-          emptyMessage="No products added yet. Use the form above to add order items."
-        />
-
-        <div className="flex flex-col items-stretch gap-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-900/5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap gap-8">
-            <div>
-              <p className="text-xs uppercase tracking-wide text-slate-400">Taxable Amount</p>
-              <p className="mt-1 text-lg font-semibold text-slate-800 tabular-nums">{formatCurrency3(taxableTotal)}</p>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-wide text-slate-400">GST Amount</p>
-              <p className="mt-1 text-lg font-semibold text-slate-800 tabular-nums">{formatCurrency3(gstTotal)}</p>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-wide text-slate-400">Grand Total</p>
-              <p className="mt-1 text-xl font-bold text-brand-600 tabular-nums">{formatCurrency3(grandTotal)}</p>
-            </div>
+        {/* Section 2: Add Products */}
+        <section>
+          <div className="mb-3 mt-8 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-500">
+            <ShoppingCart size={16} className="text-brand-500" /> Add Products
           </div>
+          <SalesItemForm
+            key={header.customerId}
+            customerMargin={customerMargin}
+            onAdd={handleAddItem}
+            editingItem={editingIndex != null ? items[editingIndex] : null}
+            onUpdate={handleUpdateItem}
+            onCancelEdit={handleCancelEdit}
+          />
+        </section>
 
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={saving}
-            className="rounded-lg bg-brand-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:opacity-60"
-          >
-            {saving ? 'Saving...' : 'Save Sales Order'}
-          </button>
-        </div>
+        {/* Section 3: Added Items */}
+        <section>
+          <div className="mb-3 mt-8 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-500">
+            <List size={16} className="text-brand-500" /> Added Items
+          </div>
+          <ItemsTable
+            items={items}
+            onRemove={handleRemoveItem}
+            onEdit={handleEditItem}
+            priceFieldName="price"
+            emptyMessage="No products added yet. Use the form above to add order items."
+          />
+        </section>
+
+        {/* Section 4: Summary & Save */}
+        <section className="flex justify-end mt-8">
+          <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-900/5">
+            <div className="mb-3 flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-slate-500">
+              <Calculator size={16} className="text-brand-500" /> Summary
+            </div>
+            
+            <div className="mt-4 space-y-3 text-sm text-slate-600">
+              <div className="flex justify-between">
+                <span>Taxable Amount:</span>
+                <span className="font-medium text-slate-800 tabular-nums">{formatCurrency3(taxableTotal)}</span>
+              </div>
+              <div className="flex justify-between border-b border-slate-100 pb-3">
+                <span>Total GST:</span>
+                <span className="font-medium text-slate-800 tabular-nums">{formatCurrency3(gstTotal)}</span>
+              </div>
+              <div className="flex justify-between pt-1">
+                <span className="text-base font-bold text-slate-800">Grand Total:</span>
+                <span className="text-xl font-bold text-brand-600 tabular-nums">{formatCurrency3(grandTotal)}</span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving}
+              className="mt-6 w-full rounded-lg bg-brand-600 px-6 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:opacity-60"
+            >
+              {saving ? 'Saving...' : 'Save Sales Order'}
+            </button>
+          </div>
+        </section>
       </main>
 
       <ConfirmDialog

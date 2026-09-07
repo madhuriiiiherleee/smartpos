@@ -1,22 +1,40 @@
-import os
 
-def process_file(filepath):
-    with open(filepath, 'r', encoding='utf-8') as f:
-        content = f.read()
+import re
 
-    original = content
-    content = content.replace(
-        '<tr className="border-b border-slate-100 text-xs uppercase tracking-wide text-slate-400">',
-        '<tr className="bg-[#103252] text-xs uppercase tracking-wide text-white">'
-    )
+def fix_customer():
+    p = "front end/src/pages/master-settings/CustomerPage.jsx"
+    with open(p, "r", encoding="utf-8") as f: c = f.read()
+    c = re.sub(r"\{\s*key:\s*'address_line1',\s*label:\s*'Address',\s*className:\s*'max-w-xs truncate'\s*\},", "", c)
+    with open(p, "w", encoding="utf-8") as f: f.write(c)
+
+def fix_vendor():
+    p = "front end/src/pages/master-settings/VendorPage.jsx"
+    with open(p, "r", encoding="utf-8") as f: c = f.read()
+    c = re.sub(r"\{\s*key:\s*'email',\s*label:\s*'Email'\s*\},", "", c)
+    c = re.sub(r"\{\s*key:\s*'gst_number',\s*label:\s*'GST Number'\s*\},", "", c)
+    with open(p, "w", encoding="utf-8") as f: f.write(c)
+
+def fix_product():
+    p = "front end/src/pages/master-settings/ProductPage.jsx"
+    with open(p, "r", encoding="utf-8") as f: c = f.read()
+    c = re.sub(r"<th className=\"px-5 py-3 font-medium\">HSN No\.</th>\n", "", c)
+    c = re.sub(r"<th className=\"px-5 py-3 font-medium\">GST</th>\n", "", c)
+    c = re.sub(r"<th className=\"px-5 py-3 text-right font-medium\">Pack Sizes</th>\n", "", c)
     
-    # Check if there are other similar ones, like printing versions
+    # And we also need to remove the corresponding <td> from the tbody
+    c = re.sub(r"<td className=\"px-5 py-3\.5 text-slate-500\">\{product\.hsn_code \|\| '—'\}</td>\n", "", c)
+    c = re.sub(r"<td className=\"px-5 py-3\.5 tabular-nums text-slate-500\">\{product\.cgst_percent == null && product\.sgst_percent == null \? '—' : `\$\{product\.cgst_percent \+ product\.sgst_percent\}%`\}</td>\n", "", c)
     
-    if content != original:
-        with open(filepath, 'w', encoding='utf-8') as f:
-            f.write(content)
-        
-for root, dirs, files in os.walk('front end/src'):
-    for file in files:
-        if file.endswith('.jsx'):
-            process_file(os.path.join(root, file))
+    # For Pack sizes:
+    c = re.sub(r"<td className=\"px-5 py-3\.5 text-right tabular-nums text-slate-500\">\{product\.details_count || 0\}</td>\n", "", c)
+    
+    # And we need to adjust the colSpan for the loading skeleton in ProductPage
+    c = c.replace("colSpan={11}", "colSpan={8}")
+    c = c.replace("colSpan={12}", "colSpan={9}") # Just in case
+
+    with open(p, "w", encoding="utf-8") as f: f.write(c)
+
+fix_customer()
+fix_vendor()
+fix_product()
+
