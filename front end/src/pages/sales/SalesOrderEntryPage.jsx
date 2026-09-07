@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import {useNavigate, useParams, Link} from 'react-router-dom'
-import {Plus, Trash2, ArrowLeft} from 'lucide-react'
+import {Plus, Trash2} from 'lucide-react'
 import { categoriesApi, customersApi, productsApi } from '../../api/master'
 import { extractErrorMessage, salesOrdersApi } from '../../api/sales'
 import { FieldLabel, FormRow, Select, TextInput } from '../../components/master/FormField'
@@ -134,8 +134,8 @@ export default function SalesOrderEntryPage() {
   if (loading) {
     return (
       <div>
-        <PageHeader isEdit={isEdit} />
         <main className="px-6 py-6">
+          <PageHeader isEdit={isEdit} />
           <div className="h-48 animate-pulse rounded-2xl bg-slate-100" />
         </main>
       </div>
@@ -144,9 +144,8 @@ export default function SalesOrderEntryPage() {
 
   return (
     <div>
-      <PageHeader isEdit={isEdit} />
-
       <main className="space-y-5 px-6 py-6">
+        <PageHeader isEdit={isEdit} />
         {error && (
           <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">{error}</div>
         )}
@@ -246,7 +245,7 @@ export default function SalesOrderEntryPage() {
           <div className="overflow-x-auto">
           <table className="w-full border-collapse text-left text-sm">
             <thead>
-              <tr className="border-b border-slate-100 text-xs uppercase tracking-wide text-slate-400">
+              <tr className="bg-[#103252] text-xs uppercase tracking-wide text-white">
                 <th className="px-5 py-3 font-medium">SL#</th>
                 <th className="px-5 py-3 font-medium">Product Name</th>
                 <th className="px-5 py-3 text-right font-medium">Quantity</th>
@@ -271,9 +270,9 @@ export default function SalesOrderEntryPage() {
                       type="button"
                       onClick={() => handleRemoveItem(index)}
                       aria-label={`Remove ${item.product_name}`}
-                      className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
+                      className="inline-flex items-center gap-1.5 rounded-md bg-rose-50 px-2.5 py-1.5 text-xs font-medium text-rose-700 transition hover:bg-rose-100"
                     >
-                      <Trash2 size={16} />
+                      <Trash2 size={14} /> Delete
                     </button>
                   </td>
                 </tr>
@@ -323,13 +322,6 @@ export default function SalesOrderEntryPage() {
 function PageHeader({ isEdit }) {
   return (
     <div className="mb-6 flex items-center gap-3">
-      <Link
-        to="/sales/order/view"
-        aria-label="Back"
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-500 shadow-sm transition hover:bg-slate-50 hover:text-slate-800"
-      >
-        <ArrowLeft size={18} />
-      </Link>
       <h1 className="text-2xl font-bold uppercase tracking-wide text-slate-800">
         {isEdit ? 'EDIT SALES ORDER' : 'SALES ORDER ENTRY'}
       </h1>

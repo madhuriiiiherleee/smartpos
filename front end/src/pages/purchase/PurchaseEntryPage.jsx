@@ -174,8 +174,8 @@ export default function PurchaseEntryPage() {
   if (loading) {
     return (
       <div>
-        <PageHeader isEdit={isEdit} />
         <main className="px-6 py-6">
+          <PageHeader isEdit={isEdit} />
           <div className="h-48 animate-pulse rounded-2xl bg-slate-100" />
         </main>
       </div>
@@ -184,9 +184,8 @@ export default function PurchaseEntryPage() {
 
   return (
     <div>
-      <PageHeader isEdit={isEdit} />
-
       <main className="space-y-5 px-6 py-6">
+        <PageHeader isEdit={isEdit} />
         {(error || supplierError) && (
           <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">
             {error || supplierError}
@@ -311,7 +310,7 @@ export default function PurchaseEntryPage() {
 
 function PageHeader({ isEdit }) {
   return (
-    <div className="mb-6 flex items-center gap-3 px-6">
+    <div className="mb-6 flex items-center gap-3">
       <h1 className="text-2xl font-bold uppercase tracking-wide text-slate-800">
         {isEdit ? 'EDIT PURCHASE' : 'PURCHASE ENTRY'}
       </h1>

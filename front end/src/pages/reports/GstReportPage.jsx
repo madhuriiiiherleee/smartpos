@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Download, Search } from 'lucide-react'
+import { Download } from 'lucide-react'
 import { financialYearsApi } from '../../api/master'
 import { reportsApi } from '../../api/reports'
 import { FieldLabel, Select } from '../../components/master/FormField'
@@ -61,7 +61,7 @@ export default function GstReportPage({ reportKey }) {
   const monthOptions = useMemo(() => monthOnlyOptions(), [])
   const [financialYears, setFinancialYears] = useState([])
   const [year, setYear] = useState('')
-  const [month, setMonth] = useState('')
+  const [month, setMonth] = useState(() => String(new Date().getMonth() + 1).padStart(2, '0'))
   const [appliedYear, setAppliedYear] = useState('')
   const [appliedMonth, setAppliedMonth] = useState('')
   const [data, setData] = useState({ rows: [] })
@@ -75,6 +75,14 @@ export default function GstReportPage({ reportKey }) {
       if (active) setYear(String(active.start_year))
     })
   }, [])
+
+  useEffect(() => {
+    if (year && month) {
+      setFilterError(null)
+      setAppliedYear(year)
+      setAppliedMonth(month)
+    }
+  }, [year, month])
 
   async function load() {
     setLoading(true)
@@ -126,22 +134,6 @@ export default function GstReportPage({ reportKey }) {
                 ))}
               </Select>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                if (!year || !month) {
-                  setFilterError('Select a Financial Year and Month.')
-                  return
-                }
-                setFilterError(null)
-                setAppliedYear(year)
-                setAppliedMonth(month)
-              }}
-              className="flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-brand-700"
-            >
-              <Search size={16} />
-              Search
-            </button>
             <a
               href={
                 appliedYear && appliedMonth
@@ -167,7 +159,7 @@ export default function GstReportPage({ reportKey }) {
           <div className="overflow-x-auto">
           <table className="w-full border-collapse text-left text-sm">
             <thead>
-              <tr className="border-b border-slate-100 text-xs uppercase tracking-wide text-slate-400">
+              <tr className="bg-[#103252] text-xs uppercase tracking-wide text-white">
                 <th className="px-4 py-3 font-medium">SL #</th>
                 {columns.map((col) => (
                   <th key={col.key} className="px-4 py-3 text-right font-medium first:text-left">

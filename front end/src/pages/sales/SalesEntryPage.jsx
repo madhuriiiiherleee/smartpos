@@ -191,8 +191,8 @@ export default function SalesEntryPage() {
   if (loading) {
     return (
       <div>
-        <PageHeader isEdit={isEdit} />
         <main className="px-6 py-6">
+          <PageHeader isEdit={isEdit} />
           <div className="h-48 animate-pulse rounded-2xl bg-slate-100" />
         </main>
       </div>
@@ -201,9 +201,8 @@ export default function SalesEntryPage() {
 
   return (
     <div>
-      <PageHeader isEdit={isEdit} />
-
       <main className="space-y-5 px-6 py-6">
+        <PageHeader isEdit={isEdit} />
         {error && (
           <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">{error}</div>
         )}
@@ -354,7 +353,7 @@ export default function SalesEntryPage() {
 
 function PageHeader({ isEdit }) {
   return (
-    <div className="mb-6 flex items-center gap-3 px-6 pt-6">
+    <div className="mb-6 flex items-center gap-3">
       <h1 className="text-2xl font-bold uppercase tracking-wide text-slate-800">
         {isEdit ? 'EDIT SALE' : 'SALES ENTRY'}
       </h1>

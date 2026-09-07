@@ -175,18 +175,18 @@ export default function PackingSizePage() {
               <button
                 type="button"
                 onClick={() => openEdit(row)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-brand-600"
+                className="inline-flex items-center gap-1.5 rounded-md bg-slate-100 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-200"
                 aria-label={`Edit ${row.label}`}
               >
-                <Pencil size={16} />
+                <Pencil size={14} /> Edit
               </button>
               <button
                 type="button"
                 onClick={() => handleDelete(row)}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-rose-600"
+                className="inline-flex items-center gap-1.5 rounded-md bg-rose-50 px-2.5 py-1.5 text-xs font-medium text-rose-700 transition hover:bg-rose-100"
                 aria-label={`Delete ${row.label}`}
               >
-                <Trash2 size={16} />
+                <Trash2 size={14} /> Delete
               </button>
             </div>
           )}

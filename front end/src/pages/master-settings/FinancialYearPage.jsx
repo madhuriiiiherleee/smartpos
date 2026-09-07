@@ -76,93 +76,96 @@ export default function FinancialYearPage() {
     <div>
       
 
-      <main className="grid grid-cols-1 gap-6 px-6 py-6 lg:grid-cols-3">
-        <div className="mb-6 flex items-center justify-between">
+      <main className="space-y-6 px-6 py-6">
+        <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-slate-800 uppercase tracking-wide">Financial Year</h1>
         </div>
-      <div className="lg:col-span-1">
-        <form
-          onSubmit={handleSubmit}
-          className="space-y-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-900/5"
-        >
-          <div>
-            <FieldLabel required>Select Start Year</FieldLabel>
-            <Select value={startYear} onChange={(e) => setStartYear(e.target.value)} required>
-              <option value="">Select Year From</option>
-              {YEAR_OPTIONS.map((year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))}
-            </Select>
-            {startYear && (
-              <p className="mt-1.5 text-xs text-slate-400">
-                {formatDDMMYYYY(`${startYear}-04-01`)} to {formatDDMMYYYY(`${Number(startYear) + 1}-03-31`)}
-              </p>
-            )}
+        
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-1">
+            <form
+              onSubmit={handleSubmit}
+              className="space-y-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-900/5"
+            >
+              <div>
+                <FieldLabel required>Select Start Year</FieldLabel>
+                <Select value={startYear} onChange={(e) => setStartYear(e.target.value)} required>
+                  <option value="">Select Year From</option>
+                  {YEAR_OPTIONS.map((year) => (
+                    <option key={year} value={year}>
+                      {year}
+                    </option>
+                  ))}
+                </Select>
+                {startYear && (
+                  <p className="mt-1.5 text-xs text-slate-400">
+                    {formatDDMMYYYY(`${startYear}-04-01`)} to {formatDDMMYYYY(`${Number(startYear) + 1}-03-31`)}
+                  </p>
+                )}
+              </div>
+
+              <label className="flex items-center gap-2 text-sm text-slate-600">
+                <input
+                  type="checkbox"
+                  checked={makeActive}
+                  onChange={(e) => setMakeActive(e.target.checked)}
+                  className="h-4 w-4 rounded border-slate-300 accent-[#103252] focus:ring-[#103252]"
+                />
+                Make it current Financial Year
+              </label>
+
+              {formError && (
+                <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-600">
+                  {formError}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={saving}
+                className="rounded-lg bg-[#103252] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#0c263e] disabled:opacity-60"
+              >
+                {saving ? 'Saving...' : 'Save'}
+              </button>
+            </form>
           </div>
 
-          <label className="flex items-center gap-2 text-sm text-slate-600">
-            <input
-              type="checkbox"
-              checked={makeActive}
-              onChange={(e) => setMakeActive(e.target.checked)}
-              className="h-4 w-4 rounded border-slate-300 accent-brand-600 focus:ring-brand-400"
+          <div className="lg:col-span-2">
+            <DataTable
+              loading={loading}
+              rows={items}
+              emptyMessage="No financial years configured."
+              columns={[
+                { key: 'sl_no', label: 'SL No' },
+                { key: 'period', label: 'Financial Year' },
+                { key: 'is_active', label: 'Status' },
+              ]}
+              renderCell={(row, col) => {
+                if (col.key === 'sl_no') return items.indexOf(row) + 1
+                if (col.key === 'period') return `${formatDDMMYYYY(row.start_date)} to ${formatDDMMYYYY(row.end_date)}`
+                if (col.key === 'is_active') {
+                  return (
+                    <span className={row.is_active ? 'font-medium text-emerald-600' : 'font-medium text-brand-600'}>
+                      {row.is_active ? 'Active' : 'Inactive'}
+                    </span>
+                  )
+                }
+                return row[col.key]
+              }}
+              actions={(row) =>
+                !row.is_active && (
+                  <button
+                    type="button"
+                    onClick={() => handleActivate(row.id)}
+                    className="rounded-lg px-3 py-1.5 text-xs font-medium text-[#103252] transition hover:bg-slate-50"
+                  >
+                    Make Active
+                  </button>
+                )
+              }
             />
-            Make it current Financial Year
-          </label>
-
-          {formError && (
-            <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-600">
-              {formError}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={saving}
-            className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700 disabled:opacity-60"
-          >
-            {saving ? 'Saving...' : 'Save'}
-          </button>
-        </form>
-      </div>
-
-      <div className="lg:col-span-2">
-        <DataTable
-          loading={loading}
-          rows={items}
-          emptyMessage="No financial years configured."
-          columns={[
-            { key: 'sl_no', label: 'SL No' },
-            { key: 'period', label: 'Financial Year' },
-            { key: 'is_active', label: 'Status' },
-          ]}
-          renderCell={(row, col) => {
-            if (col.key === 'sl_no') return items.indexOf(row) + 1
-            if (col.key === 'period') return `${formatDDMMYYYY(row.start_date)} to ${formatDDMMYYYY(row.end_date)}`
-            if (col.key === 'is_active') {
-              return (
-                <span className={row.is_active ? 'font-medium text-emerald-600' : 'font-medium text-brand-600'}>
-                  {row.is_active ? 'Active' : 'Inactive'}
-                </span>
-              )
-            }
-            return row[col.key]
-          }}
-          actions={(row) =>
-            !row.is_active && (
-              <button
-                type="button"
-                onClick={() => handleActivate(row.id)}
-                className="rounded-lg px-3 py-1.5 text-xs font-medium text-brand-600 transition hover:bg-brand-50"
-              >
-                Make Active
-              </button>
-            )
-          }
-        />
-      </div>
+          </div>
+        </div>
       </main>
 
       <ConfirmDialog

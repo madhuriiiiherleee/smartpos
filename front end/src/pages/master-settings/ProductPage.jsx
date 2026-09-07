@@ -369,7 +369,7 @@ export default function ProductPage() {
       <div className="overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-slate-900/5">
         <table className="w-full border-collapse text-left text-sm">
           <thead>
-            <tr className="border-b border-slate-100 text-xs uppercase tracking-wide text-slate-400">
+            <tr className="bg-[#103252] text-xs uppercase tracking-wide text-white">
               <th className="w-10 px-3 py-3" />
               <th className="px-5 py-3 font-medium">Product Code</th>
               <th className="px-5 py-3 font-medium">Product Name</th>
@@ -453,18 +453,18 @@ export default function ProductPage() {
                           <button
                             type="button"
                             onClick={() => openEditProduct(product)}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-brand-600"
+                            className="inline-flex items-center gap-1.5 rounded-md bg-slate-100 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-200"
                             aria-label={`Edit ${product.name}`}
                           >
-                            <Pencil size={16} />
+                            <Pencil size={14} /> Edit
                           </button>
                           <button
                             type="button"
                             onClick={() => handleDeleteProduct(product)}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-rose-600"
+                            className="inline-flex items-center gap-1.5 rounded-md bg-rose-50 px-2.5 py-1.5 text-xs font-medium text-rose-700 transition hover:bg-rose-100"
                             aria-label={`Delete ${product.name}`}
                           >
-                            <Trash2 size={16} />
+                            <Trash2 size={14} /> Delete
                           </button>
                         </div>
                       </td>
@@ -498,7 +498,7 @@ export default function ProductPage() {
                             <div className="overflow-x-auto rounded-xl bg-white ring-1 ring-slate-900/5">
                               <table className="w-full border-collapse text-left text-sm">
                                 <thead>
-                                  <tr className="border-b border-slate-100 text-xs uppercase tracking-wide text-slate-400">
+                                  <tr className="bg-[#103252] text-xs uppercase tracking-wide text-white">
                                     <th className="px-4 py-2 font-medium">Pack Code</th>
                                     <th className="px-4 py-2 font-medium">Packing Size</th>
                                     <th className="px-4 py-2 text-right font-medium">Qty / Box</th>

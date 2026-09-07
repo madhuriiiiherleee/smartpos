@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, CornerDownLeft, Eye, Search } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CornerDownLeft, Eye, Plus, Search } from 'lucide-react'
 import { customersApi } from '../../api/master'
 import { extractErrorMessage, salesApi, salesReturnsApi } from '../../api/sales'
 import Modal from '../../components/master/Modal'
@@ -20,6 +20,7 @@ function qtyPriceTaxable(item) {
 export default function SalesReturnPage() {
   const [searchParams] = useSearchParams()
   const [query, setQuery] = useState(searchParams.get('invoice') || '')
+  const [newReturnOpen, setNewReturnOpen] = useState(false)
   const [searching, setSearching] = useState(false)
   const [matches, setMatches] = useState([])
   const [searchError, setSearchError] = useState(null)
@@ -75,10 +76,18 @@ export default function SalesReturnPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [historyPage, historyAppliedFilters])
 
-  function handleHistorySearch() {
-    setHistoryPage(1)
-    setHistoryAppliedFilters({ dateFrom: historyDateFrom, dateTo: historyDateTo, customerId: historyCustomerId, q: historyQ })
-  }
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setHistoryPage(1)
+      setHistoryAppliedFilters({
+        dateFrom: historyDateFrom,
+        dateTo: historyDateTo,
+        customerId: historyCustomerId,
+        q: historyQ,
+      })
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [historyDateFrom, historyDateTo, historyCustomerId, historyQ])
 
   async function handleHistoryView(returnId) {
     setHistoryViewing(null)
@@ -103,8 +112,17 @@ export default function SalesReturnPage() {
     setSavedReturn(null)
     try {
       const result = await salesApi.list({ q: query.trim(), page: 1, page_size: 10 })
-      if (result.items.length === 0) setSearchError('No sales found for that invoice number.')
-      setMatches(result.items)
+      if (result.items.length === 0) {
+        setSearchError('No sales found for that invoice number.')
+        setMatches([])
+      } else {
+        const exact = result.items.find((i) => i.invoice_no === query.trim()) || (result.items.length === 1 ? result.items[0] : null)
+        if (exact) {
+          handleSelectSale(exact)
+        } else {
+          setMatches(result.items)
+        }
+      }
     } finally {
       setSearching(false)
     }
@@ -132,7 +150,10 @@ export default function SalesReturnPage() {
     salesApi.list({ q: invoiceParam, page: 1, page_size: 5 }).then((result) => {
       const exact = result.items.find((i) => i.invoice_no === invoiceParam)
       if (exact) handleSelectSale(exact)
-      else setMatches(result.items)
+      else {
+        setMatches(result.items)
+        if (result.items.length > 0) setNewReturnOpen(true)
+      }
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -181,6 +202,7 @@ export default function SalesReturnPage() {
         items: lines.map((l) => ({ sale_item_id: l.sale_item_id, quantity: l.qty })),
       })
       setSavedReturn(result)
+      setNewReturnOpen(false)
       setSale(null)
       setReturnableItems([])
       setQuantities({})
@@ -210,8 +232,18 @@ export default function SalesReturnPage() {
       
 
       <main className="space-y-5 px-6 py-6">
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <h1 className="text-2xl font-bold text-slate-800 uppercase tracking-wide">Sales Return</h1>
+          {!sale && (
+            <button
+              type="button"
+              onClick={() => setNewReturnOpen(true)}
+              className="flex items-center justify-center gap-1.5 rounded-lg bg-[#103252] px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[#0c263e]"
+            >
+              <Plus size={16} strokeWidth={2.5} />
+              New Return
+            </button>
+          )}
         </div>
         {savedReturn && (
           <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
@@ -225,181 +257,190 @@ export default function SalesReturnPage() {
           <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">{error}</div>
         )}
 
-        {!sale && (
-          <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-900/5">
-            <div className="mb-3">
-              <FieldLabel>Find Sale by Invoice Number</FieldLabel>
-              <p className="text-xs text-slate-500">
-                Enter the original sales invoice number (e.g. INV/...) to process a brand new return.
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <TextInput
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                placeholder="e.g. INV/2026-27/0001"
-              />
-              <button
-                type="button"
-                onClick={handleSearch}
-                disabled={searching}
-                className="flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-brand-700 disabled:opacity-60"
-              >
-                <Search size={16} />
-                Find
-              </button>
-            </div>
-
-            {searchError && <p className="mt-2 text-xs text-rose-500">{searchError}</p>}
-
-            {matches.length > 0 && (
-              <div className="mt-4 divide-y divide-slate-50 overflow-hidden rounded-xl border border-slate-100">
-                {matches.map((m) => (
+        {newReturnOpen && (
+          <Modal 
+            size={sale ? 'xl' : undefined} 
+            title={sale ? 'Process Sales Return' : 'Find Sale by Invoice Number'} 
+            onClose={() => {
+              setNewReturnOpen(false)
+              setSale(null)
+              setReturnableItems([])
+              setDateError(null)
+            }}
+          >
+            {!sale ? (
+              <div className="p-1">
+                <p className="mb-4 text-sm text-slate-500">
+                  Enter the original sales invoice number (e.g. INV/...) to process a brand new return.
+                </p>
+                <div className="flex gap-2">
+                  <TextInput
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                    placeholder="e.g. INV/2026-27/0001"
+                  />
                   <button
-                    key={m.id}
                     type="button"
-                    onClick={() => handleSelectSale(m)}
-                    className="flex w-full items-center justify-between px-4 py-3 text-left text-sm transition hover:bg-slate-50"
+                    onClick={handleSearch}
+                    disabled={searching}
+                    className="flex items-center gap-1.5 whitespace-nowrap rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-brand-700 disabled:opacity-60"
                   >
-                    <span>
-                      <span className="font-medium text-slate-700">{m.invoice_no}</span>
-                      <span className="ml-2 text-slate-400">{m.customer_name}</span>
-                    </span>
-                    <span className="flex items-center gap-4 text-slate-500">
-                      {formatDDMMYYYY(m.sale_date)}
-                      <span className="font-semibold tabular-nums text-slate-700">{formatCurrency3(m.amount)}</span>
-                      <span className="flex items-center gap-1 rounded-lg bg-brand-50 px-2.5 py-1.5 text-xs font-medium text-brand-700">
-                        <Eye size={14} />
-                        View
-                      </span>
-                    </span>
+                    <Search size={16} />
+                    Find
                   </button>
-                ))}
+                </div>
+
+                {searchError && <p className="mt-2 text-xs text-rose-500">{searchError}</p>}
+
+                {matches.length > 0 && (
+                  <div className="mt-4 divide-y divide-slate-50 overflow-hidden rounded-xl border border-slate-100 max-h-64 overflow-y-auto">
+                    {matches.map((m) => (
+                      <button
+                        key={m.id}
+                        type="button"
+                        onClick={() => handleSelectSale(m)}
+                        className="flex w-full items-center justify-between px-4 py-3 text-left text-sm transition hover:bg-slate-50"
+                      >
+                        <span>
+                          <span className="font-medium text-slate-700">{m.invoice_no}</span>
+                          <span className="ml-2 text-slate-400">{m.customer_name}</span>
+                        </span>
+                        <span className="flex items-center gap-4 text-slate-500">
+                          {formatDDMMYYYY(m.sale_date)}
+                          <span className="font-semibold tabular-nums text-slate-700">{formatCurrency3(m.amount)}</span>
+                          <span className="flex items-center gap-1 rounded-lg bg-brand-50 px-2.5 py-1.5 text-xs font-medium text-brand-700">
+                            <Eye size={14} />
+                            Select
+                          </span>
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-5 p-1">
+                <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-slate-50 p-4 ring-1 ring-slate-900/5">
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-slate-400">Returning against</p>
+                    <p className="mt-1 text-base font-semibold text-slate-800">
+                      {sale.invoice_no} <span className="font-normal text-slate-400">· {sale.customer_name}</span>
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div>
+                      <FieldLabel>Return Date</FieldLabel>
+                      <TextInput
+                        type="date"
+                        value={returnDate}
+                        min={sale.sale_date}
+                        onChange={(e) => handleReturnDateChange(e.target.value)}
+                        className={dateError ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-100' : ''}
+                      />
+                      {dateError && <p className="mt-1 text-xs text-rose-500">{dateError}</p>}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSale(null)
+                        setReturnableItems([])
+                        setDateError(null)
+                      }}
+                      className="mt-6 flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+                    >
+                      <CornerDownLeft size={14} />
+                      Back
+                    </button>
+                  </div>
+                </div>
+
+                <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse text-left text-sm">
+                      <thead>
+                        <tr className="border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                          <th className="px-4 py-3 font-medium">Product</th>
+                          <th className="px-4 py-3 text-right font-medium">Sold Qty</th>
+                          <th className="px-4 py-3 text-right font-medium">Already Returned</th>
+                          <th className="px-4 py-3 text-right font-medium">Returnable</th>
+                          <th className="px-4 py-3 text-right font-medium">Return Qty</th>
+                          <th className="px-4 py-3 text-right font-medium">Return Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {returnableItems.length === 0 && (
+                          <tr>
+                            <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-400">
+                              This sale has no returnable products.
+                            </td>
+                          </tr>
+                        )}
+                        {returnableItems.map((item) => {
+                          const qty = Number(quantities[item.sale_item_id]) || 0
+                          const unitTaxable = item.unit_taxable ?? qtyPriceTaxable(item)
+                          const unitGst = item.unit_gst ?? (unitTaxable * item.gst_percent) / 100
+                          const grand = qty * (unitTaxable + unitGst)
+                          return (
+                            <tr key={item.sale_item_id} className="border-b border-slate-100 text-slate-700 last:border-0 hover:bg-slate-50/60">
+                              <td className="px-4 py-3 font-medium">{item.product_name}</td>
+                              <td className="px-4 py-3 text-right tabular-nums">{item.sold_quantity} pcs</td>
+                              <td className="px-4 py-3 text-right tabular-nums text-slate-500">
+                                {item.already_returned_quantity} pcs
+                              </td>
+                              <td className="px-4 py-3 text-right tabular-nums">{item.returnable_quantity} pcs</td>
+                              <td className="px-4 py-3 text-right">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  max={item.returnable_quantity}
+                                  disabled={item.returnable_quantity === 0}
+                                  value={quantities[item.sale_item_id] || ''}
+                                  onChange={(e) => handleQuantityChange(item.sale_item_id, e.target.value)}
+                                  className="w-20 rounded-lg border border-slate-200 px-2 py-1 text-right text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:bg-slate-50"
+                                />
+                              </td>
+                              <td className="px-4 py-3 text-right font-semibold tabular-nums text-brand-600">
+                                {formatCurrency3(grand)}
+                              </td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div className="flex flex-col items-stretch gap-4 rounded-xl bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-wrap gap-8">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-slate-400">Taxable Amount</p>
+                      <p className="mt-1 text-lg font-semibold text-slate-800 tabular-nums">
+                        {formatCurrency3(taxableTotal)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-slate-400">GST Amount</p>
+                      <p className="mt-1 text-lg font-semibold text-slate-800 tabular-nums">{formatCurrency3(gstTotal)}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-slate-400">Return Total</p>
+                      <p className="mt-1 text-xl font-bold text-brand-600 tabular-nums">{formatCurrency3(grandTotal)}</p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={handleSave}
+                    disabled={saving}
+                    className="rounded-lg bg-brand-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:opacity-60"
+                  >
+                    {saving ? 'Saving...' : 'Save Return'}
+                  </button>
+                </div>
               </div>
             )}
-          </div>
-        )}
-
-        {sale && (
-          <>
-            <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-900/5">
-              <div>
-                <p className="text-xs uppercase tracking-wide text-slate-400">Returning against</p>
-                <p className="mt-1 text-base font-semibold text-slate-800">
-                  {sale.invoice_no} <span className="font-normal text-slate-400">· {sale.customer_name}</span>
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <div>
-                  <FieldLabel>Return Date</FieldLabel>
-                  <TextInput
-                    type="date"
-                    value={returnDate}
-                    min={sale.sale_date}
-                    onChange={(e) => handleReturnDateChange(e.target.value)}
-                    className={dateError ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-100' : ''}
-                  />
-                  {dateError && <p className="mt-1 text-xs text-rose-500">{dateError}</p>}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSale(null)
-                    setReturnableItems([])
-                    setDateError(null)
-                  }}
-                  className="mt-6 flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
-                >
-                  <CornerDownLeft size={14} />
-                  Change Sale
-                </button>
-              </div>
-            </div>
-
-            <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-900/5">
-              <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-left text-sm">
-                <thead>
-                  <tr className="border-b border-slate-100 text-xs uppercase tracking-wide text-slate-400">
-                    <th className="px-5 py-3 font-medium">Product</th>
-                    <th className="px-5 py-3 text-right font-medium">Sold Qty</th>
-                    <th className="px-5 py-3 text-right font-medium">Already Returned</th>
-                    <th className="px-5 py-3 text-right font-medium">Returnable</th>
-                    <th className="px-5 py-3 text-right font-medium">Return Qty</th>
-                    <th className="px-5 py-3 text-right font-medium">Return Amount</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {returnableItems.length === 0 && (
-                    <tr>
-                      <td colSpan={6} className="px-5 py-8 text-center text-sm text-slate-400">
-                        This sale has no returnable products.
-                      </td>
-                    </tr>
-                  )}
-                  {returnableItems.map((item, i) => {
-                    const qty = Number(quantities[item.sale_item_id]) || 0
-                    const unitTaxable = item.unit_taxable ?? qtyPriceTaxable(item)
-                    const unitGst = item.unit_gst ?? (unitTaxable * item.gst_percent) / 100
-                    const grand = qty * (unitTaxable + unitGst)
-                    return (<tr key={item.sale_item_id} className="border-b border-slate-50 text-slate-700 last:border-0 hover:bg-slate-50/60">
-                        <td className="px-5 py-3.5 font-medium">{item.product_name}</td>
-                        <td className="px-5 py-3.5 text-right tabular-nums">{item.sold_quantity} pcs</td>
-                        <td className="px-5 py-3.5 text-right tabular-nums text-slate-500">
-                          {item.already_returned_quantity} pcs
-                        </td>
-                        <td className="px-5 py-3.5 text-right tabular-nums">{item.returnable_quantity} pcs</td>
-                        <td className="px-5 py-3.5 text-right">
-                          <input
-                            type="number"
-                            min="0"
-                            max={item.returnable_quantity}
-                            disabled={item.returnable_quantity === 0}
-                            value={quantities[item.sale_item_id] || ''}
-                            onChange={(e) => handleQuantityChange(item.sale_item_id, e.target.value)}
-                            className="w-20 rounded-lg border border-slate-200 px-2 py-1 text-right text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:bg-slate-50"
-                          />
-                        </td>
-                        <td className="px-5 py-3.5 text-right font-semibold tabular-nums">
-                          {formatCurrency3(grand)}
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-          </div>
-            </div>
-
-            <div className="flex flex-col items-stretch gap-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-900/5 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex flex-wrap gap-8">
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-slate-400">Taxable Amount</p>
-                  <p className="mt-1 text-lg font-semibold text-slate-800 tabular-nums">
-                    {formatCurrency3(taxableTotal)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-slate-400">GST Amount</p>
-                  <p className="mt-1 text-lg font-semibold text-slate-800 tabular-nums">{formatCurrency3(gstTotal)}</p>
-                </div>
-                <div>
-                  <p className="text-xs uppercase tracking-wide text-slate-400">Return Total</p>
-                  <p className="mt-1 text-xl font-bold text-brand-600 tabular-nums">{formatCurrency3(grandTotal)}</p>
-                </div>
-              </div>
-
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={saving}
-                className="rounded-lg bg-brand-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:opacity-60"
-              >
-                {saving ? 'Saving...' : 'Save Return'}
-              </button>
-            </div>
-          </>
+          </Modal>
         )}
 
         {/* ---- Return History ---- */}
@@ -435,19 +476,9 @@ export default function SalesReturnPage() {
               <TextInput
                 value={historyQ}
                 onChange={(e) => setHistoryQ(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleHistorySearch()}
+
                 placeholder="e.g. SR/2026-27/0001"
               />
-            </div>
-            <div className="flex items-end xl:col-span-2">
-              <button
-                type="button"
-                onClick={handleHistorySearch}
-                className="flex w-full items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-6 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-brand-700 sm:w-auto"
-              >
-                <Search size={16} />
-                Search
-              </button>
             </div>
           </div>
         </div>
@@ -456,7 +487,7 @@ export default function SalesReturnPage() {
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-left text-sm">
               <thead>
-                <tr className="border-b border-slate-100 text-xs uppercase tracking-wide text-slate-400">
+                <tr className="bg-[#103252] text-xs uppercase tracking-wide text-white">
                   <th className="px-5 py-3 font-medium">Return No.</th>
                   <th className="px-5 py-3 font-medium">Invoice No.</th>
                   <th className="px-5 py-3 font-medium">Customer</th>
@@ -500,9 +531,9 @@ export default function SalesReturnPage() {
                           type="button"
                           onClick={() => handleHistoryView(r.id)}
                           aria-label={`View ${r.return_no}`}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-brand-600"
+                          className="inline-flex items-center gap-1.5 rounded-md bg-brand-50 px-2.5 py-1.5 text-xs font-medium text-brand-700 transition hover:bg-brand-100"
                         >
-                          <Eye size={16} />
+                          <Eye size={14} /> View
                         </button>
                       </td>
                     </tr>
@@ -578,7 +609,7 @@ export default function SalesReturnPage() {
               <div className="mt-4 overflow-hidden rounded-xl border border-slate-100">
                 <table className="w-full border-collapse text-left text-sm">
                   <thead>
-                    <tr className="border-b border-slate-100 text-xs uppercase tracking-wide text-slate-400">
+                    <tr className="bg-[#103252] text-xs uppercase tracking-wide text-white">
                       <th className="px-4 py-2.5 font-medium">Product</th>
                       <th className="px-4 py-2.5 text-right font-medium">Qty</th>
                       <th className="px-4 py-2.5 text-right font-medium">Taxable</th>

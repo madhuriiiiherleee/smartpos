@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, Eye, Pencil, Plus, Search } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Eye, Pencil, Plus } from 'lucide-react'
 import { vendorsApi } from '../../api/master'
 import { purchasesApi } from '../../api/purchase'
 import { companyProfileApi } from '../../api/company'
@@ -71,10 +71,13 @@ export default function ManagePurchasePage() {
     load()
   }, [page, appliedFilters])
 
-  function handleSearch() {
-    setPage(1)
-    setAppliedFilters({ dateFrom, dateTo, supplierId })
-  }
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPage(1)
+      setAppliedFilters({ dateFrom, dateTo, supplierId })
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [dateFrom, dateTo, supplierId])
 
   const totalPages = Math.max(1, Math.ceil(result.total / PAGE_SIZE))
 
@@ -113,16 +116,6 @@ export default function ManagePurchasePage() {
                 ))}
               </Select>
             </div>
-            <div className="flex items-end gap-2">
-              <button
-                type="button"
-                onClick={handleSearch}
-                className="flex items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-brand-700"
-              >
-                <Search size={16} />
-                Search
-              </button>
-            </div>
           </div>
         </div>
 
@@ -130,7 +123,7 @@ export default function ManagePurchasePage() {
           <div className="overflow-x-auto">
           <table className="w-full border-collapse text-left text-sm">
             <thead>
-              <tr className="border-b border-slate-100 text-xs uppercase tracking-wide text-slate-400">
+              <tr className="bg-[#103252] text-xs uppercase tracking-wide text-white">
                 <th className="px-5 py-3 font-medium">Invoice #</th>
                 <th className="px-5 py-3 font-medium">Invoice Date</th>
                 <th className="px-5 py-3 font-medium">Vendor Name</th>
@@ -169,16 +162,16 @@ export default function ManagePurchasePage() {
                           type="button"
                           onClick={() => handleView(p.id)}
                           aria-label={`View ${p.invoice_no}`}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-brand-600"
+                          className="inline-flex items-center gap-1.5 rounded-md bg-brand-50 px-2.5 py-1.5 text-xs font-medium text-brand-700 transition hover:bg-brand-100"
                         >
-                          <Eye size={16} />
+                          <Eye size={14} /> View
                         </button>
                         <Link
                           to={`/purchase/entry/${p.id}`}
                           aria-label={`Edit ${p.invoice_no}`}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-brand-600"
+                          className="inline-flex items-center gap-1.5 rounded-md bg-slate-100 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-200"
                         >
-                          <Pencil size={16} />
+                          <Pencil size={14} /> Edit
                         </Link>
                       </div>
                     </td>

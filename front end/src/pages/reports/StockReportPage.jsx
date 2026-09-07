@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Download, Printer, Search } from 'lucide-react'
+import { Download, Printer } from 'lucide-react'
 import { categoriesApi, productsApi } from '../../api/master'
 import { reportsApi } from '../../api/reports'
 import { FieldLabel, Select } from '../../components/master/FormField'
@@ -36,9 +36,12 @@ export default function StockReportPage() {
     setProductId('')
   }
 
-  function handleSearch() {
-    setAppliedFilters({ categoryId, productId })
-  }
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setAppliedFilters({ categoryId, productId })
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [categoryId, productId])
 
   return (
     <div>
@@ -75,14 +78,7 @@ export default function StockReportPage() {
               </Select>
             </div>
             <div className="flex items-end gap-2">
-              <button
-                type="button"
-                onClick={handleSearch}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-brand-700"
-              >
-                <Search size={16} />
-                Search
-              </button>
+
               <button
                 type="button"
                 onClick={() => window.print()}
@@ -109,7 +105,7 @@ export default function StockReportPage() {
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-left text-sm">
               <thead>
-                <tr className="border-b border-slate-100 text-xs uppercase tracking-wide text-slate-400">
+                <tr className="bg-[#103252] text-xs uppercase tracking-wide text-white">
                   <th className="px-5 py-3 font-medium">SL #</th>
                   <th className="px-5 py-3 font-medium">Product Code</th>
                   <th className="px-5 py-3 font-medium">Product Name</th>

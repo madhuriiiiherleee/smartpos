@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, Pencil, Plus, Printer, Search } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Eye, Pencil, Plus, Printer, Trash2 } from 'lucide-react'
 import { customersApi } from '../../api/master'
 import { salesOrdersApi } from '../../api/sales'
 import { FieldLabel, Select, TextInput } from '../../components/master/FormField'
@@ -46,10 +46,13 @@ export default function ViewSalesOrderPage() {
     load()
   }, [page, appliedFilters])
 
-  function handleSearch() {
-    setPage(1)
-    setAppliedFilters({ dateFrom, dateTo, customerId, salesType })
-  }
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPage(1)
+      setAppliedFilters({ dateFrom, dateTo, customerId, salesType })
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [dateFrom, dateTo, customerId, salesType])
 
   const totalPages = Math.max(1, Math.ceil(result.total / PAGE_SIZE))
 
@@ -102,14 +105,6 @@ export default function ViewSalesOrderPage() {
             <div className="flex items-end gap-2 xl:col-span-2">
               <button
                 type="button"
-                onClick={handleSearch}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-brand-700"
-              >
-                <Search size={16} />
-                Search
-              </button>
-              <button
-                type="button"
                 onClick={() => window.print()}
                 className="flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
               >
@@ -124,7 +119,7 @@ export default function ViewSalesOrderPage() {
           <div className="overflow-x-auto">
           <table className="w-full border-collapse text-left text-sm">
             <thead>
-              <tr className="border-b border-slate-100 text-xs uppercase tracking-wide text-slate-400">
+              <tr className="bg-[#103252] text-xs uppercase tracking-wide text-white">
                 <th className="px-5 py-3 font-medium">Order #</th>
                 <th className="px-5 py-3 font-medium">Customer Name</th>
                 <th className="px-5 py-3 font-medium">Sales Type</th>
@@ -161,9 +156,9 @@ export default function ViewSalesOrderPage() {
                       <Link
                         to={`/sales/order/entry/${o.id}`}
                         aria-label={`Edit ${o.order_no}`}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-brand-600"
+                        className="inline-flex items-center gap-1.5 rounded-md bg-slate-100 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-200"
                       >
-                        <Pencil size={16} />
+                        <Pencil size={14} /> Edit
                       </Link>
                     </td>
                   </tr>

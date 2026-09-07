@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { CheckCheck, Printer, Search } from 'lucide-react'
+import { CheckCheck, Printer } from 'lucide-react'
 import { salesApi } from '../../api/sales'
 import { FieldLabel, Select, TextInput } from '../../components/master/FormField'
 import { DELIVERY_STATUSES } from '../../lib/constants'
@@ -39,9 +39,12 @@ export default function DeliveryListPage() {
     load()
   }, [appliedFilters])
 
-  function handleSearch() {
-    setAppliedFilters({ route, deliveryStatus, q })
-  }
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setAppliedFilters({ route, deliveryStatus, q })
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [route, deliveryStatus, q])
 
   function toggleSelected(id) {
     setSelected((prev) => {
@@ -111,14 +114,6 @@ export default function DeliveryListPage() {
             <div className="flex items-end gap-2">
               <button
                 type="button"
-                onClick={handleSearch}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-brand-700"
-              >
-                <Search size={16} />
-                Search
-              </button>
-              <button
-                type="button"
                 onClick={() => window.print()}
                 className="flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
               >
@@ -148,7 +143,7 @@ export default function DeliveryListPage() {
           <div className="overflow-x-auto">
           <table className="w-full border-collapse text-left text-sm">
             <thead>
-              <tr className="border-b border-slate-100 text-xs uppercase tracking-wide text-slate-400">
+              <tr className="bg-[#103252] text-xs uppercase tracking-wide text-white">
                 <th className="px-5 py-3 font-medium print:hidden">
                   <input
                     type="checkbox"

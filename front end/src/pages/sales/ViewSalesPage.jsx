@@ -9,7 +9,6 @@ import {
   Pencil,
   Plus,
   Printer,
-  Search,
   Trash2,
 } from 'lucide-react'
 import { customersApi } from '../../api/master'
@@ -79,10 +78,13 @@ export default function ViewSalesPage() {
     load()
   }, [page, appliedFilters])
 
-  function handleSearch() {
-    setPage(1)
-    setAppliedFilters({ dateFrom, dateTo, customerId, q })
-  }
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setPage(1)
+      setAppliedFilters({ dateFrom, dateTo, customerId, q })
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [dateFrom, dateTo, customerId, q])
 
   async function handleDelete(sale) {
     setDeleteTarget(sale)
@@ -195,14 +197,7 @@ export default function ViewSalesPage() {
               <TextInput value={q} onChange={(e) => setQ(e.target.value)} placeholder="e.g. INV/2026-27/0001" />
             </div>
             <div className="flex items-end gap-2 xl:col-span-2">
-              <button
-                type="button"
-                onClick={handleSearch}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-brand-700"
-              >
-                <Search size={16} />
-                Search
-              </button>
+
               <button
                 type="button"
                 onClick={() => openPrintModal('list')}
@@ -219,7 +214,7 @@ export default function ViewSalesPage() {
           <div className="overflow-x-auto">
           <table className="w-full border-collapse text-left text-sm">
             <thead>
-              <tr className="border-b border-slate-100 text-xs uppercase tracking-wide text-slate-400">
+              <tr className="bg-[#103252] text-xs uppercase tracking-wide text-white">
                 <th className="px-5 py-3 font-medium">Invoice #</th>
                 <th className="px-5 py-3 text-right font-medium">Invoice Amount</th>
                 <th className="px-5 py-3 font-medium">Customer Name</th>
@@ -257,25 +252,25 @@ export default function ViewSalesPage() {
                         <Link
                           to={`/sales/entry/${s.id}`}
                           aria-label={`Edit ${s.invoice_no}`}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-brand-600"
+                          className="inline-flex items-center gap-1.5 rounded-md bg-slate-100 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-200"
                         >
-                          <Pencil size={16} />
+                          <Pencil size={14} /> Edit
                         </Link>
                         <button
                           type="button"
                           onClick={() => handleDelete(s)}
                           aria-label={`Delete ${s.invoice_no}`}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-rose-600"
+                          className="inline-flex items-center gap-1.5 rounded-md bg-rose-50 px-2.5 py-1.5 text-xs font-medium text-rose-700 transition hover:bg-rose-100"
                         >
-                          <Trash2 size={16} />
+                          <Trash2 size={14} /> Delete
                         </button>
                         <button
                           type="button"
                           onClick={() => handleView(s.id)}
                           aria-label={`View ${s.invoice_no}`}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-brand-600"
+                          className="inline-flex items-center gap-1.5 rounded-md bg-brand-50 px-2.5 py-1.5 text-xs font-medium text-brand-700 transition hover:bg-brand-100"
                         >
-                          <Eye size={16} />
+                          <Eye size={14} /> View
                         </button>
                         <Link
                           to={`/sales/return?invoice=${encodeURIComponent(s.invoice_no)}`}
@@ -288,9 +283,9 @@ export default function ViewSalesPage() {
                           type="button"
                           onClick={() => openPrintModal(s)}
                           aria-label={`Print ${s.invoice_no}`}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-brand-600"
+                          className="inline-flex items-center gap-1.5 rounded-md bg-slate-100 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-200"
                         >
-                          <Printer size={16} />
+                          <Printer size={14} /> Print
                         </button>
                         <Link
                           to={`/sales/invoice/${s.id}?autoprint=1`}
