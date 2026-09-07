@@ -1,11 +1,34 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Plus } from 'lucide-react'
+import { Boxes, IndianRupee, Lock, Package, Percent, Plus } from 'lucide-react'
 import { categoriesApi, packingSizesApi, productDetailsApi, productsApi } from '../../api/master'
 import { FieldLabel, Select, TextInput } from '../master/FormField'
 import QuickAddProductModal from '../master/QuickAddProductModal'
 import SearchableSelect from '../master/SearchableSelect'
+import ToggleSwitch from '../master/ToggleSwitch'
 import { formatCurrency3 } from '../../lib/format'
 import { GST_SLABS } from '../../lib/constants'
+
+function IconLabel({ icon: Icon, required, children }) {
+  return (
+    <FieldLabel required={required}>
+      <span className="inline-flex items-center whitespace-nowrap">
+        <Icon size={13} strokeWidth={2.25} className="mr-1 text-slate-400" />
+        {children}
+      </span>
+    </FieldLabel>
+  )
+}
+
+function LockedLabel({ children }) {
+  return (
+    <FieldLabel>
+      <span className="inline-flex items-center whitespace-nowrap">
+        {children}
+        <Lock size={10} strokeWidth={2.5} className="ml-1.5 text-slate-300" />
+      </span>
+    </FieldLabel>
+  )
+}
 
 const BASE_EMPTY = {
   barcode: '',
@@ -333,19 +356,23 @@ export default function ItemForm({
   }
 
   return (
-    <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-900/5">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-slate-700">{isEditing ? 'Edit Product' : 'Add Product'}</h3>
+    <div className="overflow-hidden rounded-2xl bg-brand-50/50 shadow-sm ring-1 ring-slate-900/5">
+      <div className="flex items-center justify-between border-b border-brand-100 bg-brand-50 px-5 py-3">
+        <h3 className="flex items-center gap-2 text-sm font-semibold text-brand-800">
+          <Package size={16} strokeWidth={2.25} />
+          {isEditing ? 'Edit Product' : 'Add Product'}
+        </h3>
         <button
           type="button"
           onClick={() => setQuickAddOpen(true)}
-          className="flex items-center gap-1.5 rounded-lg bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-100"
+          className="flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-brand-700 shadow-sm ring-1 ring-brand-200 hover:bg-brand-100"
         >
-          <Plus size={14} /> Add Product
+          <Plus size={14} /> New Product
         </button>
       </div>
 
-      <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3 xl:grid-cols-4">
+      <div className="bg-white p-5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 xl:grid-cols-4">
         <div>
           <FieldLabel>Pack Code</FieldLabel>
           <TextInput
@@ -400,7 +427,7 @@ export default function ItemForm({
 
         {availableQtyFn && (
           <div>
-            <FieldLabel>Available Qty</FieldLabel>
+            <LockedLabel>Available Qty</LockedLabel>
             <div className="flex h-[38px] items-center rounded-lg border border-slate-100 bg-slate-50 px-3 text-sm text-slate-500 tabular-nums">
               {availableQty === null ? '—' : `${availableQty} pieces`}
             </div>
@@ -408,7 +435,9 @@ export default function ItemForm({
         )}
 
         <div>
-          <FieldLabel>Boxes {qtyPerBox > 1 && <span className="font-normal text-slate-400">(× {qtyPerBox})</span>}</FieldLabel>
+          <IconLabel icon={Boxes}>
+            Boxes {qtyPerBox > 1 && <span className="font-normal text-slate-400">(× {qtyPerBox})</span>}
+          </IconLabel>
           <TextInput
             type="number"
             min="0"
@@ -441,7 +470,7 @@ export default function ItemForm({
         </div>
 
         <div>
-          <FieldLabel>Total Qty (pieces)</FieldLabel>
+          <LockedLabel>Total Qty (pieces)</LockedLabel>
           <div
             className={`flex h-[38px] items-center rounded-lg border px-3 text-sm tabular-nums ${
               insufficientStock ? 'border-rose-300 bg-rose-50 text-rose-600' : 'border-slate-100 bg-slate-50 text-slate-700'
@@ -452,9 +481,9 @@ export default function ItemForm({
         </div>
 
         <div>
-          <FieldLabel required>
+          <IconLabel icon={IndianRupee} required>
             <span className="whitespace-nowrap">{priceLabel}</span>
-          </FieldLabel>
+          </IconLabel>
           <TextInput
             type="number"
             min="0"
@@ -466,19 +495,18 @@ export default function ItemForm({
 
         <div>
           <FieldLabel>&nbsp;</FieldLabel>
-          <label className="flex h-[38px] items-center gap-1.5 text-sm text-slate-600">
-            <input
-              type="checkbox"
+          <div className="flex h-[38px] items-center">
+            <ToggleSwitch
               checked={form.price_inc_gst}
-              onChange={(e) => setForm({ ...form, price_inc_gst: e.target.checked })}
-              className="h-4 w-4 accent-brand-600"
+              onChange={(v) => setForm({ ...form, price_inc_gst: v })}
+              label="Incl. GST"
+              activeColor="brand"
             />
-            Price inc GST
-          </label>
+          </div>
         </div>
 
         <div>
-          <FieldLabel required>GST %</FieldLabel>
+          <IconLabel icon={Percent} required>GST %</IconLabel>
           <Select value={form.gst_percent} onChange={(e) => setForm({ ...form, gst_percent: e.target.value })}>
             {GST_SLABS.map((slab) => (
               <option key={slab} value={slab}>
@@ -497,26 +525,29 @@ export default function ItemForm({
 
       {formError && <p className="mt-2 text-xs text-rose-500">{formError}</p>}
 
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-4 rounded-xl bg-slate-50 px-4 py-3">
-        <div className="flex flex-wrap gap-6 text-sm">
+      <div className="mt-4 flex flex-wrap items-center justify-between gap-4 rounded-xl bg-slate-50 px-4 py-2.5">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
           {discountPercent > 0 && (
-            <div>
-              <span className="text-slate-400">Discount ({discountPercent}%) </span>
-              <span className="font-medium text-slate-700 tabular-nums">- {formatCurrency3(gross - net)}</span>
-            </div>
+            <>
+              <span className="text-slate-500">
+                Discount <span className="tabular-nums">({discountPercent}%)</span>{' '}
+                <span className="font-medium tabular-nums text-slate-700">-{formatCurrency3(gross - net)}</span>
+              </span>
+              <span className="text-slate-300">•</span>
+            </>
           )}
-          <div>
-            <span className="text-slate-400">Taxable Amount </span>
-            <span className="font-medium text-slate-700 tabular-nums">{formatCurrency3(taxableAmount)}</span>
-          </div>
-          <div>
-            <span className="text-slate-400">{isIgst ? 'IGST ' : 'CGST + SGST '}</span>
-            <span className="font-medium text-slate-700 tabular-nums">{formatCurrency3(gstAmount)}</span>
-          </div>
-          <div>
-            <span className="text-slate-400">Grand Amount </span>
-            <span className="font-semibold text-slate-800 tabular-nums">{formatCurrency3(grandAmount)}</span>
-          </div>
+          <span className="text-slate-500">
+            Taxable <span className="font-medium tabular-nums text-slate-700">{formatCurrency3(taxableAmount)}</span>
+          </span>
+          <span className="text-slate-300">•</span>
+          <span className="text-slate-500">
+            {isIgst ? 'IGST' : 'CGST+SGST'}{' '}
+            <span className="font-medium tabular-nums text-slate-700">{formatCurrency3(gstAmount)}</span>
+          </span>
+          <span className="text-slate-300">•</span>
+          <span className="text-slate-600">
+            Total <span className="font-bold tabular-nums text-brand-700">{formatCurrency3(grandAmount)}</span>
+          </span>
         </div>
 
         <div className="flex items-center gap-2">
@@ -538,6 +569,7 @@ export default function ItemForm({
             {isEditing ? 'Update Item' : 'Add Item'}
           </button>
         </div>
+      </div>
       </div>
 
       {quickAddOpen && (

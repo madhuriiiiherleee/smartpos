@@ -19,7 +19,7 @@ import ConfirmDialog from '../../components/shared/ConfirmDialog'
 import SearchableSelect from '../../components/master/SearchableSelect'
 import SalesInvoiceBody from '../../components/sales/SalesInvoiceBody'
 import { FieldLabel, TextInput } from '../../components/master/FormField'
-import { formatCurrency } from '../../lib/format'
+import { formatCurrency, formatDDMMYYYY } from '../../lib/format'
 import { withBase } from '../../lib/url'
 
 function invoiceUrl(id, size) {
@@ -246,7 +246,7 @@ export default function ViewSalesPage() {
                     <td className="px-5 py-3.5 font-medium">{s.invoice_no}</td>
                     <td className="px-5 py-3.5 text-right font-semibold tabular-nums">{formatCurrency(s.amount)}</td>
                     <td className="px-5 py-3.5">{s.customer_name || <span className="text-slate-300">—</span>}</td>
-                    <td className="px-5 py-3.5">{s.sale_date}</td>
+                    <td className="px-5 py-3.5">{formatDDMMYYYY(s.sale_date)}</td>
                     <td className="px-5 py-3.5 text-right print:hidden">
                       <div className="flex items-center justify-end gap-1">
                         <Link

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import {Plus} from 'lucide-react'
+import {ClipboardList, FileText, Plus} from 'lucide-react'
 import {useNavigate, useParams, Link} from 'react-router-dom'
 import { customersApi } from '../../api/master'
 import { extractErrorMessage, salesApi } from '../../api/sales'
@@ -207,7 +207,12 @@ export default function SalesEntryPage() {
           <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">{error}</div>
         )}
 
-        <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-900/5">
+        <div className="overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-slate-900/5">
+          <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50/80 px-5 py-3">
+            <FileText size={16} strokeWidth={2.25} className="text-slate-500" />
+            <h3 className="text-sm font-semibold text-slate-700">Sale Details</h3>
+          </div>
+          <div className="p-5">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
             <div>
               <FieldLabel required>Sales Date</FieldLabel>
@@ -220,12 +225,14 @@ export default function SalesEntryPage() {
               />
             </div>
             <div>
-              <div className="mb-1.5 flex items-center justify-between">
-                <FieldLabel required>Customer Name</FieldLabel>
+              <div className="mb-1.5 flex h-5 items-center justify-between">
+                <FieldLabel required>
+                  <span className="leading-5">Customer Name</span>
+                </FieldLabel>
                 <button
                   type="button"
                   onClick={openQuickCustomer}
-                  className="flex items-center gap-1 rounded-md bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-700 hover:bg-brand-100"
+                  className="flex items-center gap-1 rounded-md bg-brand-50 px-2 text-xs font-medium leading-none text-brand-700 hover:bg-brand-100"
                 >
                   <Plus size={12} /> Add Customer
                 </button>
@@ -251,30 +258,31 @@ export default function SalesEntryPage() {
             </div>
           </div>
 
-          <div className="mt-4">
-            <FieldLabel>Shipping Address</FieldLabel>
-            {selectedCustomer ? (
-              <div className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2.5 text-sm text-slate-600">
-                {customerAddress(selectedCustomer) || (
-                  <span className="text-slate-400">No address on file for this customer.</span>
-                )}
-              </div>
-            ) : (
-              <div className="rounded-lg border border-slate-100 bg-slate-50 px-3 py-2.5 text-sm text-slate-400">
-                Select a customer to show their address.
-              </div>
-            )}
-          </div>
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-4">
+            <div className="sm:col-span-3">
+              <FieldLabel>Shipping Address</FieldLabel>
+              {selectedCustomer ? (
+                <div className="flex h-[38px] items-center truncate rounded-lg border border-slate-100 bg-slate-50 px-3 text-sm text-slate-600">
+                  {customerAddress(selectedCustomer) || (
+                    <span className="text-slate-400">No address on file for this customer.</span>
+                  )}
+                </div>
+              ) : (
+                <div className="flex h-[38px] items-center rounded-lg border border-slate-100 bg-slate-50 px-3 text-sm text-slate-400">
+                  Select a customer to show their address.
+                </div>
+              )}
+            </div>
 
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <div>
               <FieldLabel>Grand Total</FieldLabel>
               <TextInput
                 readOnly
                 value={formatCurrency3(grandTotal)}
-                className="cursor-not-allowed bg-slate-50 text-slate-500"
+                className="h-[38px] cursor-not-allowed bg-slate-50 text-right text-base font-semibold text-brand-700"
               />
             </div>
+          </div>
           </div>
         </div>
 
@@ -296,30 +304,36 @@ export default function SalesEntryPage() {
           emptyMessage="No products added yet. Use the form above to add sales items."
         />
 
-        <div className="flex flex-col items-stretch gap-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-900/5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap gap-8">
-            <div>
-              <p className="text-xs uppercase tracking-wide text-slate-400">Taxable Amount</p>
-              <p className="mt-1 text-lg font-semibold text-slate-800 tabular-nums">{formatCurrency3(taxableTotal)}</p>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-wide text-slate-400">GST Amount</p>
-              <p className="mt-1 text-lg font-semibold text-slate-800 tabular-nums">{formatCurrency3(gstTotal)}</p>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-wide text-slate-400">Grand Total</p>
-              <p className="mt-1 text-xl font-bold text-brand-600 tabular-nums">{formatCurrency3(grandTotal)}</p>
-            </div>
+        <div className="sticky bottom-4 z-10 overflow-hidden rounded-2xl bg-white shadow-lg ring-1 ring-slate-900/5">
+          <div className="flex items-center gap-2 border-b border-slate-100 bg-slate-50/80 px-5 py-2.5">
+            <ClipboardList size={15} strokeWidth={2.25} className="text-slate-500" />
+            <h3 className="text-xs font-semibold uppercase tracking-wide text-slate-500">Order Summary</h3>
           </div>
+          <div className="flex flex-col items-stretch gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap gap-8">
+              <div>
+                <p className="text-xs uppercase tracking-wide text-slate-400">Taxable Amount</p>
+                <p className="mt-1 text-lg font-semibold text-slate-800 tabular-nums">{formatCurrency3(taxableTotal)}</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-slate-400">GST Amount</p>
+                <p className="mt-1 text-lg font-semibold text-slate-800 tabular-nums">{formatCurrency3(gstTotal)}</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-wide text-slate-400">Grand Total</p>
+                <p className="mt-1 text-xl font-bold text-brand-600 tabular-nums">{formatCurrency3(grandTotal)}</p>
+              </div>
+            </div>
 
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={saving}
-            className="rounded-lg bg-brand-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:opacity-60"
-          >
-            {saving ? 'Saving...' : 'Save Sale'}
-          </button>
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={saving}
+              className="rounded-lg bg-brand-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:opacity-60"
+            >
+              {saving ? 'Saving...' : 'Save Sale'}
+            </button>
+          </div>
         </div>
       </main>
 

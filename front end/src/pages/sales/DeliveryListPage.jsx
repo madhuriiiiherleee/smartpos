@@ -3,6 +3,7 @@ import { CheckCheck, Printer } from 'lucide-react'
 import { salesApi } from '../../api/sales'
 import { FieldLabel, Select, TextInput } from '../../components/master/FormField'
 import { DELIVERY_STATUSES } from '../../lib/constants'
+import { formatDDMMYYYY } from '../../lib/format'
 
 export default function DeliveryListPage() {
   const [routes, setRoutes] = useState([])
@@ -201,7 +202,9 @@ export default function DeliveryListPage() {
                         {item.delivery_status}
                       </span>
                     </td>
-                    <td className="px-5 py-3.5">{item.delivery_date || <span className="text-slate-300">—</span>}</td>
+                    <td className="px-5 py-3.5">
+                      {item.delivery_date ? formatDDMMYYYY(item.delivery_date) : <span className="text-slate-300">—</span>}
+                    </td>
                     <td className="px-5 py-3.5">{item.payment_type}</td>
                   </tr>
                 ))}

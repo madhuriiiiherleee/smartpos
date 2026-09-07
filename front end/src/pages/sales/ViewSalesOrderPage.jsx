@@ -5,7 +5,7 @@ import { customersApi } from '../../api/master'
 import { salesOrdersApi } from '../../api/sales'
 import { FieldLabel, Select, TextInput } from '../../components/master/FormField'
 import { SALES_TYPES } from '../../lib/constants'
-import { formatCurrency } from '../../lib/format'
+import { formatCurrency, formatDDMMYYYY } from '../../lib/format'
 
 const PAGE_SIZE = 10
 
@@ -153,7 +153,7 @@ export default function ViewSalesOrderPage() {
                     <td className="px-5 py-3.5 font-medium">{o.order_no}</td>
                     <td className="px-5 py-3.5">{o.customer_name || <span className="text-slate-300">—</span>}</td>
                     <td className="px-5 py-3.5">{o.sales_type || <span className="text-slate-300">—</span>}</td>
-                    <td className="px-5 py-3.5">{o.order_date}</td>
+                    <td className="px-5 py-3.5">{formatDDMMYYYY(o.order_date)}</td>
                     <td className="px-5 py-3.5 text-right font-semibold tabular-nums">{formatCurrency(o.amount || 0)}</td>
                     <td className="px-5 py-3.5 text-right">
                       <Link

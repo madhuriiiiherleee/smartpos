@@ -8,7 +8,7 @@ import ItemsTable from '../../components/shared/ItemsTable'
 import AlertDialog from '../../components/shared/AlertDialog'
 import ConfirmDialog from '../../components/shared/ConfirmDialog'
 import { FieldLabel, Select, TextInput } from '../../components/master/FormField'
-import { formatCurrency3, today } from '../../lib/format'
+import { formatCurrency3, formatDDMMYYYY, today } from '../../lib/format'
 
 export default function PurchaseEntryPage() {
   const { id } = useParams()
@@ -204,7 +204,7 @@ export default function PurchaseEntryPage() {
               {duplicatePurchase && (
                 <p className="mt-1.5 text-xs text-amber-600">
                   Already entered: invoice {duplicatePurchase.invoice_no} dated{' '}
-                  {new Date(duplicatePurchase.purchase_date).toLocaleDateString('en-IN')}, ₹
+                  {formatDDMMYYYY(duplicatePurchase.purchase_date)}, ₹
                   {Number(duplicatePurchase.amount).toLocaleString('en-IN')} —{' '}
                   <Link to={`/purchase/entry/${duplicatePurchase.id}`} className="font-medium underline">
                     open it

@@ -63,17 +63,17 @@ export default function AlertDialog({ open, variant = 'success', title, message,
           </div>
         )}
 
-        <div className="mt-6 flex justify-center">
-          <button
-            type="button"
-            onClick={handleClose}
-            className={`rounded-lg px-6 py-2.5 text-sm font-medium text-white transition ${
-              isSuccess ? 'bg-brand-600 hover:bg-brand-700' : 'bg-rose-600 hover:bg-rose-700'
-            }`}
-          >
-            OK
-          </button>
-        </div>
+        {!isSuccess && (
+          <div className="mt-6 flex justify-center">
+            <button
+              type="button"
+              onClick={handleClose}
+              className="rounded-lg bg-rose-600 px-6 py-2.5 text-sm font-medium text-white transition hover:bg-rose-700"
+            >
+              OK
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

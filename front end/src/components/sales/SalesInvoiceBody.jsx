@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { salesReturnsApi } from '../../api/sales'
 import InvoiceBody from '../shared/InvoiceBody'
+import { formatDDMMYYYY } from '../../lib/format'
 
 export default function SalesInvoiceBody({ sale, company }) {
   const [returnedByItem, setReturnedByItem] = useState({})
@@ -23,7 +24,7 @@ export default function SalesInvoiceBody({ sale, company }) {
       doc={sale}
       company={company}
       title="Tax Invoice"
-      dateText={sale.sale_date}
+      dateText={formatDDMMYYYY(sale.sale_date)}
       partyLabel="Bill To"
       partyName={sale.customer_name}
       partyAttn={sale.shipping_name ? `Attn: ${sale.shipping_name}` : null}
