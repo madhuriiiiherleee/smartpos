@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { changePassword, createUser, fetchUsers } from '../api/auth'
-import { extractErrorMessage } from '../api/company'
+import { extractErrorMessage } from '../api/utils'
 import { FieldLabel, TextInput } from '../components/master/FormField'
+import AlertDialog from '../components/shared/AlertDialog'
+import ConfirmDialog from '../components/shared/ConfirmDialog'
 import CompanyProfilePage from './CompanyProfilePage'
 
 const TABS = [
@@ -17,8 +19,10 @@ function ChangePasswordTab() {
   const [error, setError] = useState(null)
   const [success, setSuccess] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [resultDialog, setResultDialog] = useState(null)
 
-  async function handleSubmit(e) {
+  function handleSubmit(e) {
     e.preventDefault()
     setError(null)
     setSuccess(null)
@@ -26,15 +30,28 @@ function ChangePasswordTab() {
       setError('New password and confirmation do not match')
       return
     }
+    setConfirmOpen(true)
+  }
+
+  async function doSave() {
+    setConfirmOpen(false)
     setSaving(true)
     try {
       await changePassword(currentPassword, newPassword)
-      setSuccess('Password updated successfully')
       setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')
+      setResultDialog({
+        variant: 'success',
+        title: 'Password Updated Successfully',
+        message: 'Your password has been changed successfully.',
+      })
     } catch (err) {
-      setError(extractErrorMessage(err))
+      setResultDialog({
+        variant: 'error',
+        title: 'Failed to Update Password',
+        message: extractErrorMessage(err),
+      })
     } finally {
       setSaving(false)
     }
@@ -90,6 +107,23 @@ function ChangePasswordTab() {
           {saving ? 'Saving...' : 'Update Password'}
         </button>
       </div>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Update Password?"
+        message="Are you sure you want to update your password?"
+        confirmLabel="Update"
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={doSave}
+        busy={saving}
+      />
+      <AlertDialog
+        open={resultDialog != null}
+        variant={resultDialog?.variant ?? 'success'}
+        title={resultDialog?.title ?? ''}
+        message={resultDialog?.message ?? ''}
+        onClose={() => setResultDialog(null)}
+      />
     </form>
   )
 }
@@ -101,6 +135,8 @@ function UsersTab() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState(null)
   const [saving, setSaving] = useState(false)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [resultDialog, setResultDialog] = useState(null)
 
   async function load() {
     setLoading(true)
@@ -115,17 +151,32 @@ function UsersTab() {
     load()
   }, [])
 
-  async function handleSubmit(e) {
+  function handleSubmit(e) {
     e.preventDefault()
     setError(null)
+    setConfirmOpen(true)
+  }
+
+  async function doAddUser() {
+    setConfirmOpen(false)
     setSaving(true)
+    const userName = username.trim()
     try {
       await createUser(username, password)
       setUsername('')
       setPassword('')
       await load()
+      setResultDialog({
+        variant: 'success',
+        title: 'User Added Successfully',
+        message: `User "${userName}" has been added successfully.`,
+      })
     } catch (err) {
-      setError(extractErrorMessage(err))
+      setResultDialog({
+        variant: 'error',
+        title: 'Failed to Add User',
+        message: extractErrorMessage(err),
+      })
     } finally {
       setSaving(false)
     }
@@ -201,6 +252,23 @@ function UsersTab() {
               {saving ? 'Adding...' : 'Add User'}
             </button>
           </div>
+
+          <ConfirmDialog
+            open={confirmOpen}
+            title="Add User?"
+            message={`Are you sure you want to add user "${username.trim() || ''}"?`}
+            confirmLabel="Add"
+            onCancel={() => setConfirmOpen(false)}
+            onConfirm={doAddUser}
+            busy={saving}
+          />
+          <AlertDialog
+            open={resultDialog != null}
+            variant={resultDialog?.variant ?? 'success'}
+            title={resultDialog?.title ?? ''}
+            message={resultDialog?.message ?? ''}
+            onClose={() => setResultDialog(null)}
+          />
         </form>
       </div>
     </div>
@@ -212,14 +280,12 @@ export default function ProfileSettingsPage() {
 
   return (
     <div>
-      <header className="border-b border-brand-200 bg-brand-100">
-        <div className="px-6 py-5">
-          <h1 className="text-lg font-semibold text-slate-800">Profile Settings</h1>
-          <p className="text-sm text-slate-400">Manage your password and users</p>
-        </div>
-      </header>
+      
 
       <main className="space-y-6 px-6 py-6">
+        <div className="mb-6 flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-slate-800 uppercase tracking-wide">Profile Settings</h1>
+        </div>
         <div className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-900/5">
           <div className={`flex gap-1 border-b border-slate-100 ${tab === 'company' ? '' : 'mb-6'}`}>
             {TABS.map((t) => (

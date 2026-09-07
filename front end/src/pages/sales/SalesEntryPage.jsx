@@ -1,17 +1,15 @@
 import { useEffect, useState } from 'react'
-import { Plus } from 'lucide-react'
-import { useNavigate, useParams } from 'react-router-dom'
+import {Plus} from 'lucide-react'
+import {useNavigate, useParams, Link} from 'react-router-dom'
 import { customersApi } from '../../api/master'
 import { extractErrorMessage, salesApi } from '../../api/sales'
 import SalesItemForm from '../../components/sales/SalesItemForm'
-import SalesItemsTable from '../../components/sales/SalesItemsTable'
+import ItemsTable from '../../components/shared/ItemsTable'
 import QuickAddCustomerModal from '../../components/master/QuickAddCustomerModal'
+import AlertDialog from '../../components/shared/AlertDialog'
+import ConfirmDialog from '../../components/shared/ConfirmDialog'
 import { FieldLabel, Select, TextInput } from '../../components/master/FormField'
-import { formatCurrency3 } from '../../lib/format'
-
-function today() {
-  return new Date().toISOString().slice(0, 10)
-}
+import { formatCurrency3, today } from '../../lib/format'
 
 const EMPTY_HEADER = {
   saleDate: today(),
@@ -28,10 +26,13 @@ export default function SalesEntryPage() {
   const [header, setHeader] = useState(EMPTY_HEADER)
   const [customers, setCustomers] = useState([])
   const [items, setItems] = useState([])
+  const [editingIndex, setEditingIndex] = useState(null)
 
   const [loading, setLoading] = useState(isEdit)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [resultDialog, setResultDialog] = useState(null)
 
   const [quickCustomerOpen, setQuickCustomerOpen] = useState(false)
 
@@ -45,20 +46,36 @@ export default function SalesEntryPage() {
 
   useEffect(() => {
     if (isEdit) {
-      salesApi.get(id).then((sale) => {
-        setInvoiceNo(sale.invoice_no)
-        setHeader({
-          saleDate: sale.sale_date,
-          customerId: String(sale.customer_id),
-          discount: String(sale.discount ?? 0),
+      salesApi
+        .get(id)
+        .then((sale) => {
+          setInvoiceNo(sale.invoice_no)
+          setHeader({
+            saleDate: sale.sale_date,
+            customerId: String(sale.customer_id),
+            discount: String(sale.discount ?? 0),
+          })
+          setItems(sale.items)
+          setLoading(false)
         })
-        setItems(sale.items)
-        setLoading(false)
-      })
+        .catch((err) => {
+          setError(extractErrorMessage(err))
+          setLoading(false)
+        })
     } else {
-      salesApi.nextInvoiceNumber().then((res) => setInvoiceNo(res.number))
+      salesApi.nextInvoiceNumber(header.saleDate).then((res) => setInvoiceNo(res.number))
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, isEdit])
+
+  useEffect(() => {
+    if (!isEdit && header.saleDate) {
+      salesApi.nextInvoiceNumber(header.saleDate).then((res) => {
+        if (!isEdit) setInvoiceNo(res.number)
+      })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [header.saleDate])
 
   function openQuickCustomer() {
     setQuickCustomerOpen(true)
@@ -82,6 +99,7 @@ export default function SalesEntryPage() {
   function handleCustomerChange(value) {
     setHeader((h) => ({ ...h, customerId: value }))
     setItems([])
+    setEditingIndex(null)
     setError(null)
   }
 
@@ -89,11 +107,25 @@ export default function SalesEntryPage() {
     setItems((prev) => [...prev, item])
   }
 
-  function handleRemoveItem(index) {
-    setItems((prev) => prev.filter((_, i) => i !== index))
+  function handleUpdateItem(item) {
+    setItems((prev) => prev.map((existing, i) => (i === editingIndex ? item : existing)))
+    setEditingIndex(null)
   }
 
-  async function handleSave() {
+  function handleEditItem(index) {
+    setEditingIndex(index)
+  }
+
+  function handleCancelEdit() {
+    setEditingIndex(null)
+  }
+
+  function handleRemoveItem(index) {
+    setItems((prev) => prev.filter((_, i) => i !== index))
+    if (editingIndex === index) setEditingIndex(null)
+  }
+
+  function handleSave() {
     setError(null)
     if (!header.customerId) {
       setError('Please select a customer.')
@@ -103,7 +135,11 @@ export default function SalesEntryPage() {
       setError('Add at least one product before saving.')
       return
     }
+    setConfirmOpen(true)
+  }
 
+  async function doSave() {
+    setConfirmOpen(false)
     setSaving(true)
     try {
       const payload = {
@@ -131,13 +167,21 @@ export default function SalesEntryPage() {
           is_igst: i.is_igst || false,
         })),
       }
-      if (isEdit) {
-        await salesApi.update(id, payload)
-      } else {
-        await salesApi.create(payload)
-      }
-      navigate('/sales/view')
+      const saved = isEdit ? await salesApi.update(id, payload) : await salesApi.create(payload)
+      setResultDialog({
+        variant: 'success',
+        title: isEdit ? 'Sale Updated Successfully' : 'Sale Saved Successfully',
+        message: isEdit
+          ? 'Your sales changes have been saved successfully.'
+          : `Invoice ${saved.invoice_no || ''} has been saved successfully.`,
+        onCloseNav: '/sales/view',
+      })
     } catch (err) {
+      setResultDialog({
+        variant: 'error',
+        title: isEdit ? 'Failed to Update Sale' : 'Failed to Save Sale',
+        message: extractErrorMessage(err),
+      })
       setError(extractErrorMessage(err))
     } finally {
       setSaving(false)
@@ -235,9 +279,23 @@ export default function SalesEntryPage() {
           </div>
         </div>
 
-        <SalesItemForm key={header.customerId} customerMargin={customerMargin} onAdd={handleAddItem} />
+        <SalesItemForm
+          key={header.customerId}
+          customerMargin={customerMargin}
+          excludeSaleId={isEdit ? id : undefined}
+          onAdd={handleAddItem}
+          editingItem={editingIndex != null ? items[editingIndex] : null}
+          onUpdate={handleUpdateItem}
+          onCancelEdit={handleCancelEdit}
+        />
 
-        <SalesItemsTable items={items} onRemove={handleRemoveItem} />
+        <ItemsTable
+          items={items}
+          onRemove={handleRemoveItem}
+          onEdit={handleEditItem}
+          priceFieldName="price"
+          emptyMessage="No products added yet. Use the form above to add sales items."
+        />
 
         <div className="flex flex-col items-stretch gap-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-900/5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap gap-8">
@@ -269,20 +327,38 @@ export default function SalesEntryPage() {
       {quickCustomerOpen && (
         <QuickAddCustomerModal onClose={() => setQuickCustomerOpen(false)} onCreated={handleCustomerCreated} />
       )}
+      <ConfirmDialog
+        open={confirmOpen}
+        title={isEdit ? 'Save Sale Changes?' : 'Save Sale?'}
+        message={`Are you sure you want to ${isEdit ? 'save the changes to this sale' : 'save this sale'}?`}
+        confirmLabel="Save Sale"
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={doSave}
+        busy={saving}
+      />
+      <AlertDialog
+        open={resultDialog != null}
+        variant={resultDialog?.variant ?? 'success'}
+        title={resultDialog?.title ?? ''}
+        message={resultDialog?.message ?? ''}
+        onClose={() => {
+          setResultDialog(null)
+          if (resultDialog?.onCloseNav && resultDialog.variant === 'success') {
+            navigate(resultDialog.onCloseNav)
+          }
+        }}
+      />
     </div>
   )
 }
 
 function PageHeader({ isEdit }) {
   return (
-    <header className="border-b border-brand-200 bg-brand-100">
-      <div className="px-6 py-5">
-        <h1 className="text-lg font-semibold text-slate-800">{isEdit ? 'Edit Sale' : 'Sales Entry'}</h1>
-        <p className="text-sm text-slate-400">
-          {isEdit ? 'Update this sales invoice' : 'Record a new sales invoice for a customer'}
-        </p>
-      </div>
-    </header>
+    <div className="mb-6 flex items-center gap-3 px-6 pt-6">
+      <h1 className="text-2xl font-bold uppercase tracking-wide text-slate-800">
+        {isEdit ? 'EDIT SALE' : 'SALES ENTRY'}
+      </h1>
+    </div>
   )
 }
 

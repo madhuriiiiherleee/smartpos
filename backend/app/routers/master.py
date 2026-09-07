@@ -63,7 +63,11 @@ def _commit(db: Session, obj, duplicate_field: str):
         db.commit()
     except IntegrityError as exc:
         db.rollback()
-        raise HTTPException(status_code=400, detail=f"{duplicate_field} already exists") from exc
+        if getattr(exc.orig, "sqlstate", None) == "23505":
+            detail = f"{duplicate_field} already exists"
+        else:
+            detail = "Could not save — please check the values and try again"
+        raise HTTPException(status_code=400, detail=detail) from exc
     db.refresh(obj)
     return obj
 
@@ -282,10 +286,14 @@ def list_product_details(
     stmt = select(ProductDetail)
     if product_id is not None:
         stmt = stmt.where(ProductDetail.product_id == product_id)
+    if category_id is not None or q:
+        stmt = stmt.join(Product, Product.id == ProductDetail.product_id)
     if category_id is not None:
-        stmt = stmt.join(Product, Product.id == ProductDetail.product_id).where(Product.category_id == category_id)
+        stmt = stmt.where(Product.category_id == category_id)
     if q:
-        stmt = stmt.where(ProductDetail.code.ilike(f"%{q}%"))
+        # Match either the pack's own code or the parent product's barcode/code,
+        # since a product's code can be edited without updating its pack codes.
+        stmt = stmt.where(or_(ProductDetail.code.ilike(f"%{q}%"), Product.code.ilike(f"%{q}%")))
     stmt = stmt.order_by(ProductDetail.code)
     details = db.execute(stmt).scalars().all()
     return [_product_detail_read(d) for d in details]

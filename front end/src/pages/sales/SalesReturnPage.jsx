@@ -5,13 +5,16 @@ import { customersApi } from '../../api/master'
 import { extractErrorMessage, salesApi, salesReturnsApi } from '../../api/sales'
 import Modal from '../../components/master/Modal'
 import SearchableSelect from '../../components/master/SearchableSelect'
+import AlertDialog from '../../components/shared/AlertDialog'
+import ConfirmDialog from '../../components/shared/ConfirmDialog'
 import { FieldLabel, TextInput } from '../../components/master/FormField'
-import { formatCurrency3, formatDDMMYYYY } from '../../lib/format'
+import { formatCurrency3, formatDDMMYYYY, today } from '../../lib/format'
 
 const HISTORY_PAGE_SIZE = 10
 
-function today() {
-  return new Date().toISOString().slice(0, 10)
+function qtyPriceTaxable(item) {
+  const gross = Number(item.price) * (1 - (Number(item.discount_percent) || 0) / 100)
+  return item.price_inc_gst ? gross / (1 + Number(item.gst_percent) / 100) : gross
 }
 
 export default function SalesReturnPage() {
@@ -30,6 +33,8 @@ export default function SalesReturnPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const [savedReturn, setSavedReturn] = useState(null)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [resultDialog, setResultDialog] = useState(null)
 
   // ---- Return History ----
   const [historyCustomers, setHistoryCustomers] = useState([])
@@ -139,8 +144,11 @@ export default function SalesReturnPage() {
   const lines = returnableItems
     .map((item) => {
       const qty = Number(quantities[item.sale_item_id]) || 0
-      const taxable = qty * item.price
-      const gst = (taxable * item.gst_percent) / 100
+      // Use the backend-computed per-unit taxable/GST (already price_inc_gst-
+      // and discount-aware) so the preview always matches the saved credit note.
+      const unitTaxable = item.unit_taxable ?? qtyPriceTaxable(item)
+      const gst = qty * (item.unit_gst ?? unitTaxable * item.gst_percent / 100)
+      const taxable = qty * unitTaxable
       const grand = taxable + gst
       return { ...item, qty, taxable, gst, grand }
     })
@@ -150,7 +158,7 @@ export default function SalesReturnPage() {
   const gstTotal = lines.reduce((sum, l) => sum + l.gst, 0)
   const grandTotal = lines.reduce((sum, l) => sum + l.grand, 0)
 
-  async function handleSave() {
+  function handleSave() {
     setError(null)
     if (sale && returnDate < sale.sale_date) {
       setDateError('Return date cannot be earlier than the original sale date.')
@@ -160,6 +168,11 @@ export default function SalesReturnPage() {
       setError('Enter a return quantity for at least one product.')
       return
     }
+    setConfirmOpen(true)
+  }
+
+  async function doSave() {
+    setConfirmOpen(false)
     setSaving(true)
     try {
       const result = await salesReturnsApi.create({
@@ -175,7 +188,17 @@ export default function SalesReturnPage() {
       setHistoryPage(1)
       setHistoryAppliedFilters({})
       await loadHistory()
+      setResultDialog({
+        variant: 'success',
+        title: 'Sales Return Saved Successfully',
+        message: `Return ${result.return_no} has been saved successfully against invoice ${result.invoice_no}.`,
+      })
     } catch (err) {
+      setResultDialog({
+        variant: 'error',
+        title: 'Failed to Save Sales Return',
+        message: extractErrorMessage(err),
+      })
       setError(extractErrorMessage(err))
     } finally {
       setSaving(false)
@@ -184,14 +207,12 @@ export default function SalesReturnPage() {
 
   return (
     <div>
-      <header className="border-b border-brand-200 bg-brand-100">
-        <div className="px-6 py-5">
-          <h1 className="text-lg font-semibold text-slate-800">Sales Return</h1>
-          <p className="text-sm text-slate-400">Select a sale and process the returned products</p>
-        </div>
-      </header>
+      
 
       <main className="space-y-5 px-6 py-6">
+        <div className="mb-6 flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-slate-800 uppercase tracking-wide">Sales Return</h1>
+        </div>
         {savedReturn && (
           <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
             Return <span className="font-semibold">{savedReturn.return_no}</span> saved against invoice{' '}
@@ -319,9 +340,10 @@ export default function SalesReturnPage() {
                   )}
                   {returnableItems.map((item, i) => {
                     const qty = Number(quantities[item.sale_item_id]) || 0
-                    const grand = qty * item.price * (1 + item.gst_percent / 100)
-                    return (
-                      <tr key={item.sale_item_id} className="border-b border-slate-50 text-slate-700 last:border-0 hover:bg-slate-50/60">
+                    const unitTaxable = item.unit_taxable ?? qtyPriceTaxable(item)
+                    const unitGst = item.unit_gst ?? (unitTaxable * item.gst_percent) / 100
+                    const grand = qty * (unitTaxable + unitGst)
+                    return (<tr key={item.sale_item_id} className="border-b border-slate-50 text-slate-700 last:border-0 hover:bg-slate-50/60">
                         <td className="px-5 py-3.5 font-medium">{item.product_name}</td>
                         <td className="px-5 py-3.5 text-right tabular-nums">{item.sold_quantity} pcs</td>
                         <td className="px-5 py-3.5 text-right tabular-nums text-slate-500">
@@ -386,7 +408,7 @@ export default function SalesReturnPage() {
           <p className="text-sm text-slate-400">All sales returns saved so far</p>
         </div>
 
-        <div className="rounded-2xl border-t-4 border-brand-500 bg-white p-5 shadow-sm ring-1 ring-slate-900/5">
+        <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-900/5">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-6">
             <div>
               <FieldLabel>From Date</FieldLabel>
@@ -518,7 +540,20 @@ export default function SalesReturnPage() {
       </main>
 
       {historyViewOpen && (
-        <Modal title="Sales Return" onClose={closeHistoryView} size="xl">
+        <Modal
+          title="Sales Return"
+          onClose={closeHistoryView}
+          size="xl"
+          footer={
+            <button
+              type="button"
+              onClick={closeHistoryView}
+              className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+            >
+              Close
+            </button>
+          }
+        >
           {historyViewing ? (
             <div>
               <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-100 pb-4">
@@ -587,6 +622,23 @@ export default function SalesReturnPage() {
           )}
         </Modal>
       )}
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Save Sales Return?"
+        message="Are you sure you want to save this sales return?"
+        confirmLabel="Save Return"
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={doSave}
+        busy={saving}
+      />
+      <AlertDialog
+        open={resultDialog != null}
+        variant={resultDialog?.variant ?? 'success'}
+        title={resultDialog?.title ?? ''}
+        message={resultDialog?.message ?? ''}
+        onClose={() => setResultDialog(null)}
+      />
     </div>
   )
 }

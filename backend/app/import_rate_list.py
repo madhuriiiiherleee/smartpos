@@ -28,8 +28,8 @@ from app.models import (
     SalesReturn,
 )
 
-DEMO_PRODUCT_IDS = [1, 2, 3, 4, 5]
 DEMO_CATEGORY_CODES = ["CAT-ELEC", "CAT-GROC", "CAT-STAT", "CAT-TEXT"]
+DEMO_PRODUCT_CODES = ["PRD-1001", "PRD-1002", "PRD-2001", "PRD-3001", "PRD-4001"]
 
 # (name, size_ml, qty_per_box, retailer_price, mrp, tcd_rate)
 CUP = [
@@ -192,9 +192,16 @@ def product_code_for(cat_code: str, name: str, strip_words: set[str]) -> str:
 
 
 def cleanup_demo_data(db):
+    demo_product_ids = [
+        row.id for row in db.query(Product).filter(Product.code.in_(DEMO_PRODUCT_CODES)).all()
+    ]
+    if not demo_product_ids:
+        print("No demo master data found (already cleaned).")
+        return
+
     demo_sale_ids = [
         row.sale_id
-        for row in db.query(SaleItem).filter(SaleItem.product_id.in_(DEMO_PRODUCT_IDS)).all()
+        for row in db.query(SaleItem).filter(SaleItem.product_id.in_(demo_product_ids)).all()
     ]
     for sr in db.query(SalesReturn).filter(SalesReturn.sale_id.in_(demo_sale_ids)).all():
         db.delete(sr)
@@ -205,23 +212,23 @@ def cleanup_demo_data(db):
 
     demo_order_ids = {
         row.sales_order_id
-        for row in db.query(SalesOrderItem).filter(SalesOrderItem.product_id.in_(DEMO_PRODUCT_IDS)).all()
+        for row in db.query(SalesOrderItem).filter(SalesOrderItem.product_id.in_(demo_product_ids)).all()
     }
     for order in db.query(SalesOrder).filter(SalesOrder.id.in_(demo_order_ids)).all():
         db.delete(order)
 
     demo_purchase_ids = {
         row.purchase_id
-        for row in db.query(PurchaseItem).filter(PurchaseItem.product_id.in_(DEMO_PRODUCT_IDS)).all()
+        for row in db.query(PurchaseItem).filter(PurchaseItem.product_id.in_(demo_product_ids)).all()
     }
     for purchase in db.query(Purchase).filter(Purchase.id.in_(demo_purchase_ids)).all():
         db.delete(purchase)
 
     db.flush()
 
-    for detail in db.query(ProductDetail).filter(ProductDetail.product_id.in_(DEMO_PRODUCT_IDS)).all():
+    for detail in db.query(ProductDetail).filter(ProductDetail.product_id.in_(demo_product_ids)).all():
         db.delete(detail)
-    for product in db.query(Product).filter(Product.id.in_(DEMO_PRODUCT_IDS)).all():
+    for product in db.query(Product).filter(Product.id.in_(demo_product_ids)).all():
         db.delete(product)
     for category in db.query(Category).filter(Category.code.in_(DEMO_CATEGORY_CODES)).all():
         db.delete(category)
@@ -261,6 +268,12 @@ def import_rate_list(db):
 
         for name, size_ml, qty_box, retail, mrp, tcd, sku_suffix in items:
             code = product_code_for(cat_code, name, strip_words)
+            existing = product_by_code.get(code)
+            # Two names can strip to the same code (e.g. "MANGO CANDY" and
+            # "MANGO DOLLY" both -> CDK-MANGO). Never merge distinct products —
+            # fall back to the full name so each SKU keeps its own product row.
+            if existing is not None and existing.name != name.title():
+                code = f"{cat_code}-{re.sub(r'[^A-Z0-9 ]', '', name.upper()).strip().replace(' ', '-')}"
             product = product_by_code.get(code)
             if product is None:
                 product = Product(

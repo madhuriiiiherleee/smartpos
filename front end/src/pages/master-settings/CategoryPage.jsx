@@ -3,6 +3,8 @@ import { Pencil } from 'lucide-react'
 import { categoriesApi, extractErrorMessage } from '../../api/master'
 import DataTable from '../../components/master/DataTable'
 import Modal from '../../components/master/Modal'
+import AlertDialog from '../../components/shared/AlertDialog'
+import ConfirmDialog from '../../components/shared/ConfirmDialog'
 import PageToolbar from '../../components/master/PageToolbar'
 import ToggleSwitch from '../../components/master/ToggleSwitch'
 import { FieldLabel, FormRow, TextInput } from '../../components/master/FormField'
@@ -21,6 +23,8 @@ export default function CategoryPage() {
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState(null)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [resultDialog, setResultDialog] = useState(null)
 
   async function load() {
     setLoading(true)
@@ -50,10 +54,16 @@ export default function CategoryPage() {
     setModalOpen(true)
   }
 
-  async function handleSubmit(e) {
+  function handleSubmit(e) {
     e.preventDefault()
-    setSaving(true)
     setFormError(null)
+    setConfirmOpen(true)
+  }
+
+  async function doSave() {
+    setConfirmOpen(false)
+    setSaving(true)
+    const categoryName = form.name.trim()
     try {
       if (editingId) {
         await categoriesApi.update(editingId, form)
@@ -62,8 +72,17 @@ export default function CategoryPage() {
       }
       setModalOpen(false)
       await load()
+      setResultDialog({
+        variant: 'success',
+        title: editingId ? 'Category Updated Successfully' : 'Category Added Successfully',
+        message: `"${categoryName}" has been ${editingId ? 'updated' : 'added'} successfully.`,
+      })
     } catch (err) {
-      setFormError(extractErrorMessage(err))
+      setResultDialog({
+        variant: 'error',
+        title: 'Failed to Save Category',
+        message: extractErrorMessage(err),
+      })
     } finally {
       setSaving(false)
     }
@@ -80,15 +99,11 @@ export default function CategoryPage() {
 
   return (
     <div>
-      <header className="border-b border-brand-200 bg-brand-100">
-        <div className="px-6 py-5">
-          <h1 className="text-lg font-semibold text-slate-800">Category</h1>
-          <p className="text-sm text-slate-400">Manage product categories</p>
-        </div>
-      </header>
+      
 
       <main className="space-y-4 px-6 py-6">
       <PageToolbar
+        title="Category"
         search={search}
         onSearchChange={setSearch}
         searchPlaceholder="Search by code or name..."
@@ -160,7 +175,7 @@ export default function CategoryPage() {
                   required
                   value={form.code}
                   onChange={(e) => setForm({ ...form, code: e.target.value })}
-                  placeholder="e.g. CAT-ELEC"
+                  placeholder="e.g. CAT-SCO"
                 />
               </div>
               <div>
@@ -169,13 +184,30 @@ export default function CategoryPage() {
                   required
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="e.g. Electronics"
+                  placeholder="e.g. Scoop"
                 />
               </div>
             </FormRow>
           </form>
         </Modal>
       )}
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Save Category?"
+        message={`Are you sure you want to ${editingId ? 'save changes to' : 'add'} "${form.name
+          .trim() || 'this category'}"?`}
+        confirmLabel="Save"
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={doSave}
+        busy={saving}
+      />
+      <AlertDialog
+        open={resultDialog != null}
+        variant={resultDialog?.variant ?? 'success'}
+        title={resultDialog?.title ?? ''}
+        message={resultDialog?.message ?? ''}
+        onClose={() => setResultDialog(null)}
+      />
       </main>
     </div>
   )

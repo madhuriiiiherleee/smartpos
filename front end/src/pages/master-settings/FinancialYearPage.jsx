@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { financialYearsApi, extractErrorMessage } from '../../api/master'
 import DataTable from '../../components/master/DataTable'
+import AlertDialog from '../../components/shared/AlertDialog'
+import ConfirmDialog from '../../components/shared/ConfirmDialog'
 import { FieldLabel, Select } from '../../components/master/FormField'
 import { formatDDMMYYYY } from '../../lib/format'
 
@@ -14,6 +16,8 @@ export default function FinancialYearPage() {
   const [makeActive, setMakeActive] = useState(true)
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState(null)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [resultDialog, setResultDialog] = useState(null)
 
   async function load() {
     setLoading(true)
@@ -28,21 +32,36 @@ export default function FinancialYearPage() {
     load()
   }, [])
 
-  async function handleSubmit(e) {
+  function handleSubmit(e) {
     e.preventDefault()
     if (!startYear) {
       setFormError('Select a start year.')
       return
     }
-    setSaving(true)
     setFormError(null)
+    setConfirmOpen(true)
+  }
+
+  async function doSave() {
+    setConfirmOpen(false)
+    setSaving(true)
+    const yearLabel = `${startYear}-${Number(startYear) + 1}`
     try {
       await financialYearsApi.create({ start_year: Number(startYear), make_active: makeActive })
       setStartYear('')
       setMakeActive(true)
       await load()
+      setResultDialog({
+        variant: 'success',
+        title: 'Financial Year Added Successfully',
+        message: `Financial year ${yearLabel} has been added successfully.`,
+      })
     } catch (err) {
-      setFormError(extractErrorMessage(err))
+      setResultDialog({
+        variant: 'error',
+        title: 'Failed to Add Financial Year',
+        message: extractErrorMessage(err),
+      })
     } finally {
       setSaving(false)
     }
@@ -55,14 +74,12 @@ export default function FinancialYearPage() {
 
   return (
     <div>
-      <header className="border-b border-brand-200 bg-brand-100">
-        <div className="px-6 py-5">
-          <h1 className="text-lg font-semibold text-slate-800">Financial Year</h1>
-          <p className="text-sm text-slate-400">Manage financial years</p>
-        </div>
-      </header>
+      
 
       <main className="grid grid-cols-1 gap-6 px-6 py-6 lg:grid-cols-3">
+        <div className="mb-6 flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-slate-800 uppercase tracking-wide">Financial Year</h1>
+        </div>
       <div className="lg:col-span-1">
         <form
           onSubmit={handleSubmit}
@@ -147,6 +164,25 @@ export default function FinancialYearPage() {
         />
       </div>
       </main>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Add Financial Year?"
+        message={`Are you sure you want to add financial year ${startYear}-${Number(startYear) + 1}${
+          makeActive ? ' and make it the current year' : ''
+        }?`}
+        confirmLabel="Save"
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={doSave}
+        busy={saving}
+      />
+      <AlertDialog
+        open={resultDialog != null}
+        variant={resultDialog?.variant ?? 'success'}
+        title={resultDialog?.title ?? ''}
+        message={resultDialog?.message ?? ''}
+        onClose={() => setResultDialog(null)}
+      />
     </div>
   )
 }

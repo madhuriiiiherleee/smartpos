@@ -60,7 +60,11 @@ export default function DeliveryListPage() {
     if (selected.size === 0) return
     setMarking(true)
     try {
-      const data = await salesApi.markDelivered(Array.from(selected))
+      const data = await salesApi.markDelivered(Array.from(selected), {
+        route: appliedFilters.route,
+        delivery_status: appliedFilters.deliveryStatus,
+        q: appliedFilters.q,
+      })
       setItems(data.items)
       setSelected(new Set())
     } finally {
@@ -70,15 +74,13 @@ export default function DeliveryListPage() {
 
   return (
     <div>
-      <header className="border-b border-brand-200 bg-brand-100">
-        <div className="px-6 py-5">
-          <h1 className="text-lg font-semibold text-slate-800">Delivery List</h1>
-          <p className="text-sm text-slate-400">Track and print deliveries for sales invoices</p>
-        </div>
-      </header>
+      
 
       <main className="space-y-4 px-6 py-6 print:px-[12mm]">
-        <div className="rounded-2xl border-t-4 border-brand-500 bg-white p-5 shadow-sm ring-1 ring-slate-900/5 print:hidden">
+        <div className="mb-6 flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-slate-800 uppercase tracking-wide">Delivery List</h1>
+        </div>
+        <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-900/5 print:hidden">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
             <div>
               <FieldLabel>Route</FieldLabel>

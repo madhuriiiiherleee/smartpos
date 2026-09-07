@@ -29,6 +29,7 @@ class PurchaseItemRead(BaseModel):
     qty_per_box: int | None = None
     quantity: int
     purchase_price: float
+    price_inc_gst: bool = False
     discount_percent: float
     gst_percent: float
     is_igst: bool

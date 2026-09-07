@@ -1,6 +1,9 @@
 import { createClient } from './client'
+import { extractErrorMessage } from './utils'
 
 const client = createClient('/api/company-profile')
+
+export { extractErrorMessage }
 
 export const companyProfileApi = {
   get: async () => (await client.get('')).data,
@@ -12,8 +15,4 @@ export const companyProfileApi = {
     return data
   },
   removeLogo: async () => (await client.delete('/logo')).data,
-}
-
-export function extractErrorMessage(error) {
-  return error?.response?.data?.detail || 'Something went wrong. Please try again.'
 }

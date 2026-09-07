@@ -3,6 +3,8 @@ import { Pencil, Trash2 } from 'lucide-react'
 import { extractErrorMessage, packingSizesApi } from '../../api/master'
 import DataTable from '../../components/master/DataTable'
 import Modal from '../../components/master/Modal'
+import AlertDialog from '../../components/shared/AlertDialog'
+import ConfirmDialog from '../../components/shared/ConfirmDialog'
 import PageToolbar from '../../components/master/PageToolbar'
 import ToggleSwitch from '../../components/master/ToggleSwitch'
 import { FieldLabel, FormRow, TextInput } from '../../components/master/FormField'
@@ -22,6 +24,9 @@ export default function PackingSizePage() {
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState(null)
   const [listError, setListError] = useState(null)
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [resultDialog, setResultDialog] = useState(null)
 
   async function load() {
     setLoading(true)
@@ -55,16 +60,22 @@ export default function PackingSizePage() {
     setModalOpen(true)
   }
 
-  async function handleSubmit(e) {
+  function handleSubmit(e) {
     e.preventDefault()
-    setSaving(true)
     setFormError(null)
+    setConfirmOpen(true)
+  }
+
+  async function doSave() {
+    const payload = {
+      value: form.value === '' ? null : Number(form.value),
+      unit: form.unit,
+      active: form.active,
+    }
+    setConfirmOpen(false)
+    setSaving(true)
+    const label = form.unit ? `${form.value || 0} ${form.unit}`.trim() : 'this packing size'
     try {
-      const payload = {
-        value: form.value === '' ? null : Number(form.value),
-        unit: form.unit,
-        active: form.active,
-      }
       if (editingId) {
         await packingSizesApi.update(editingId, payload)
       } else {
@@ -72,21 +83,46 @@ export default function PackingSizePage() {
       }
       setModalOpen(false)
       await load()
+      setResultDialog({
+        variant: 'success',
+        title: editingId ? 'Packing Size Updated Successfully' : 'Packing Size Added Successfully',
+        message: `"${label}" has been ${editingId ? 'updated' : 'added'} successfully.`,
+      })
     } catch (err) {
-      setFormError(extractErrorMessage(err))
+      setResultDialog({
+        variant: 'error',
+        title: 'Failed to Save Packing Size',
+        message: extractErrorMessage(err),
+      })
     } finally {
       setSaving(false)
     }
   }
 
   async function handleDelete(packingSize) {
-    if (!window.confirm(`Delete packing size "${packingSize.label}"? This cannot be undone.`)) return
+    setDeleteTarget(packingSize)
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return
+    const packingSize = deleteTarget
+    setDeleteTarget(null)
     setListError(null)
     try {
       await packingSizesApi.remove(packingSize.id)
       await load()
+      setResultDialog({
+        variant: 'success',
+        title: 'Packing Size Deleted Successfully',
+        message: `"${packingSize.label}" has been deleted successfully.`,
+      })
     } catch (err) {
       setListError(extractErrorMessage(err))
+      setResultDialog({
+        variant: 'error',
+        title: 'Failed to Delete Packing Size',
+        message: extractErrorMessage(err),
+      })
     }
   }
 
@@ -101,17 +137,11 @@ export default function PackingSizePage() {
 
   return (
     <div>
-      <header className="border-b border-brand-200 bg-brand-100">
-        <div className="px-6 py-5">
-          <h1 className="text-lg font-semibold text-slate-800">Packing Size</h1>
-          <p className="text-sm text-slate-400">
-            Manage the packing sizes (e.g. 100 ML, 500 ML, 1 KG) used across products
-          </p>
-        </div>
-      </header>
+      
 
       <main className="space-y-4 px-6 py-6">
         <PageToolbar
+        title="Packing Size"
           search={search}
           onSearchChange={setSearch}
           searchPlaceholder="Search by unit or size..."
@@ -224,6 +254,35 @@ export default function PackingSizePage() {
             </form>
           </Modal>
         )}
+      <ConfirmDialog
+        open={deleteTarget != null}
+        title="Delete Packing Size?"
+        message={
+          deleteTarget
+            ? `Are you sure you want to delete "${deleteTarget.label}"? This action cannot be undone.`
+            : ''
+        }
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+      />
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Save Packing Size?"
+        message={`Are you sure you want to ${editingId ? 'save changes to' : 'add'} "${
+          form.unit ? `${form.value || 0} ${form.unit}`.trim() : 'this packing size'
+        }"?`}
+        confirmLabel="Save"
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={doSave}
+        busy={saving}
+      />
+      <AlertDialog
+        open={resultDialog != null}
+        variant={resultDialog?.variant ?? 'success'}
+        title={resultDialog?.title ?? ''}
+        message={resultDialog?.message ?? ''}
+        onClose={() => setResultDialog(null)}
+      />
       </main>
     </div>
   )

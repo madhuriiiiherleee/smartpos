@@ -29,12 +29,14 @@ router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 def get_summary(db: Session = Depends(get_db)):
     purchase_register = db.scalar(select(func.coalesce(func.sum(Purchase.amount), 0))) or 0
     sales_order_count = db.scalar(select(func.count(SalesOrder.id))) or 0
+    sales_count = db.scalar(select(func.count(Sale.id))) or 0
     sales_register = db.scalar(select(func.coalesce(func.sum(Sale.amount), 0))) or 0
     customer_payment = db.scalar(select(func.coalesce(func.sum(CustomerPayment.amount), 0))) or 0
 
     return DashboardSummary(
         purchase_register=float(purchase_register),
         sales_order_count=int(sales_order_count),
+        sales_count=int(sales_count),
         sales_register=float(sales_register),
         customer_payment=float(customer_payment),
     )
@@ -48,15 +50,17 @@ def get_purchase_sales_report(year: int | None = None, db: Session = Depends(get
     fy_months = [(fy_start_year, month) for month in range(4, 13)] + [
         (fy_start_year + 1, month) for month in range(1, 4)
     ]
+    fy_start = date(fy_start_year, 4, 1)
+    fy_end = date(fy_start_year + 1, 3, 31)
 
     sales_rows = db.execute(
         select(extract("year", Sale.sale_date), extract("month", Sale.sale_date), func.sum(Sale.amount))
-        .where(extract("year", Sale.sale_date).in_({fy_year for fy_year, _ in fy_months}))
+        .where(Sale.sale_date >= fy_start, Sale.sale_date <= fy_end)
         .group_by(extract("year", Sale.sale_date), extract("month", Sale.sale_date))
     ).all()
     purchase_rows = db.execute(
         select(extract("year", Purchase.purchase_date), extract("month", Purchase.purchase_date), func.sum(Purchase.amount))
-        .where(extract("year", Purchase.purchase_date).in_({fy_year for fy_year, _ in fy_months}))
+        .where(Purchase.purchase_date >= fy_start, Purchase.purchase_date <= fy_end)
         .group_by(extract("year", Purchase.purchase_date), extract("month", Purchase.purchase_date))
     ).all()
 
@@ -76,8 +80,23 @@ def get_purchase_sales_report(year: int | None = None, db: Session = Depends(get
 @router.get("/customer-balance", response_model=list[CustomerBalanceItem])
 def get_customer_balance(db: Session = Depends(get_db)):
     customers = db.execute(select(Customer).order_by(Customer.name)).scalars().all()
+
+    # A customer's outstanding balance is derived live: total sales minus total
+    # payments (the stored Customer.balance column is legacy/seeded and never updated,
+    # so it's not a reliable source of truth).
+    sale_totals = dict(
+        db.execute(select(Sale.customer_id, func.sum(Sale.amount)).group_by(Sale.customer_id)).all()
+    )
+    payment_totals = dict(
+        db.execute(select(CustomerPayment.customer_id, func.sum(CustomerPayment.amount)).group_by(CustomerPayment.customer_id)).all()
+    )
+
     return [
-        CustomerBalanceItem(sl_no=index, customer_name=customer.name, balance=float(customer.balance))
+        CustomerBalanceItem(
+            sl_no=index,
+            customer_name=customer.name,
+            balance=round(float(sale_totals.get(customer.id, 0.0)) - float(payment_totals.get(customer.id, 0.0)), 2),
+        )
         for index, customer in enumerate(customers, start=1)
     ]
 

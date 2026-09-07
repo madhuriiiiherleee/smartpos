@@ -1,7 +1,10 @@
 import { Fragment, useEffect, useState } from 'react'
 import { ChevronDown, ChevronRight, Pencil, Plus, Trash2 } from 'lucide-react'
 import { categoriesApi, extractErrorMessage, packingSizesApi, productDetailsApi, productsApi } from '../../api/master'
+import AddProductForm from '../../components/master/AddProductForm'
 import Modal from '../../components/master/Modal'
+import AlertDialog from '../../components/shared/AlertDialog'
+import ConfirmDialog from '../../components/shared/ConfirmDialog'
 import PageToolbar from '../../components/master/PageToolbar'
 import ToggleSwitch from '../../components/master/ToggleSwitch'
 import { FieldLabel, FormRow, Select, TextArea, TextInput } from '../../components/master/FormField'
@@ -19,6 +22,7 @@ const EMPTY_PRODUCT_FORM = {
   sgst_percent: '',
   packing_size_id: '',
   qty_per_box: '',
+  wholesale_price: '',
   retail_price: '',
   mrp: '',
 }
@@ -28,6 +32,7 @@ const EMPTY_DETAIL_FORM = {
   code: '',
   packing_size_id: '',
   qty_per_box: '',
+  wholesale_price: '',
   retail_price: '',
   mrp: '',
 }
@@ -52,6 +57,12 @@ export default function ProductPage() {
   const [savingProduct, setSavingProduct] = useState(false)
   const [productFormError, setProductFormError] = useState(null)
   const [listError, setListError] = useState(null)
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [resultDialog, setResultDialog] = useState(null)
+  const [pendingProductValues, setPendingProductValues] = useState(null)
+  const [productConfirmOpen, setProductConfirmOpen] = useState(false)
+  const [pendingDetailValues, setPendingDetailValues] = useState(null)
+  const [detailConfirmOpen, setDetailConfirmOpen] = useState(false)
 
   const [detailModalOpen, setDetailModalOpen] = useState(false)
   const [editingDetailId, setEditingDetailId] = useState(null)
@@ -84,6 +95,18 @@ export default function ProductPage() {
   const packingSizeOptions = editingDetailPackingSize && !packingSizes.some((p) => p.id === editingDetailPackingSize.id)
     ? [editingDetailPackingSize, ...packingSizes]
     : packingSizes
+
+  // Categories for the dropdown, plus the currently-assigned one even if it's not in the
+  // active list, so editing always shows the product's actual category (never a wrong/first one).
+  const categoryOptions =
+    editingProductId && productForm.category_id !== '' && !categories.some((c) => c.id === Number(productForm.category_id))
+      ? categories.concat([
+          {
+            id: Number(productForm.category_id),
+            name: items.find((p) => p.id === editingProductId)?.category_name || 'Current category',
+          },
+        ])
+      : categories
 
   async function loadDetails(productId) {
     setDetailsLoading(true)
@@ -128,59 +151,103 @@ export default function ProductPage() {
     setProductModalOpen(true)
   }
 
-  async function handleProductSubmit(e) {
-    e.preventDefault()
-    setSavingProduct(true)
+  function handleProductCreate(values) {
     setProductFormError(null)
+    setPendingProductValues(values)
+    setProductConfirmOpen(true)
+  }
+
+  async function doCreateProduct() {
+    const values = pendingProductValues
+    setProductConfirmOpen(false)
+    setProductModalOpen(false)
+    setSavingProduct(true)
     try {
-      if (editingProductId) {
-        const payload = {
-          category_id: Number(productForm.category_id),
-          code: productForm.code,
-          name: productForm.name,
-          description: productForm.description || null,
-          active: productForm.active,
-          hsn_code: productForm.hsn_code || null,
-          cgst_percent: productForm.cgst_percent === '' ? null : Number(productForm.cgst_percent),
-          sgst_percent: productForm.sgst_percent === '' ? null : Number(productForm.sgst_percent),
-        }
-        await productsApi.update(editingProductId, payload)
-      } else {
-        const payload = {
-          category_id: Number(productForm.category_id),
-          code: productForm.code,
-          name: productForm.name,
-          description: productForm.description || null,
-          active: productForm.active,
-          hsn_code: productForm.hsn_code || null,
-          cgst_percent: productForm.cgst_percent === '' ? null : Number(productForm.cgst_percent),
-          sgst_percent: productForm.sgst_percent === '' ? null : Number(productForm.sgst_percent),
-          packing_size_id: Number(productForm.packing_size_id),
-          qty_per_box: Number(productForm.qty_per_box),
-          rate_per_unit: Number(productForm.mrp),
-          retail_price: Number(productForm.retail_price),
-          mrp: Number(productForm.mrp),
-        }
-        await productsApi.createWithDetail(payload)
+      const created = await productsApi.createWithDetail(values)
+      await load()
+      setResultDialog({
+        variant: 'success',
+        title: 'Product Added Successfully',
+        message: `"${created.name}" has been added successfully.`,
+      })
+    } catch (err) {
+      setProductModalOpen(true)
+      setResultDialog({
+        variant: 'error',
+        title: 'Failed to Add Product',
+        message: extractErrorMessage(err),
+      })
+    } finally {
+      setSavingProduct(false)
+    }
+  }
+
+  function handleProductUpdate(e) {
+    e.preventDefault()
+    setProductFormError(null)
+    setProductConfirmOpen(true)
+  }
+
+  async function doUpdateProduct() {
+    setProductConfirmOpen(false)
+    setSavingProduct(true)
+    const productName = productForm.name.trim()
+    try {
+      const payload = {
+        category_id: Number(productForm.category_id),
+        code: productForm.code,
+        name: productForm.name,
+        description: productForm.description || null,
+        active: productForm.active,
+        hsn_code: productForm.hsn_code || null,
+        cgst_percent: productForm.cgst_percent === '' ? null : Number(productForm.cgst_percent),
+        sgst_percent: productForm.sgst_percent === '' ? null : Number(productForm.sgst_percent),
       }
+      await productsApi.update(editingProductId, payload)
       setProductModalOpen(false)
       await load()
+      setResultDialog({
+        variant: 'success',
+        title: 'Product Updated Successfully',
+        message: `"${productName}" has been updated successfully.`,
+      })
     } catch (err) {
       setProductFormError(extractErrorMessage(err))
+      setResultDialog({
+        variant: 'error',
+        title: 'Failed to Update Product',
+        message: extractErrorMessage(err),
+      })
     } finally {
       setSavingProduct(false)
     }
   }
 
   async function handleDeleteProduct(product) {
-    if (!window.confirm(`Delete product "${product.name}"? This cannot be undone.`)) return
+    setDeleteTarget(product)
+  }
+
+  async function confirmDeleteProduct() {
+    if (!deleteTarget) return
+    const product = deleteTarget
+    setDeleteTarget(null)
     setListError(null)
     try {
       await productsApi.remove(product.id)
       if (expandedId === product.id) setExpandedId(null)
       await load()
+      setResultDialog({
+        variant: 'success',
+        title: 'Product Deleted Successfully',
+        message: `"${product.name}" has been deleted successfully.`,
+      })
     } catch (err) {
       setListError(extractErrorMessage(err))
+      setResultDialog({
+        variant: 'error',
+        title: 'Failed to Delete Product',
+        message: extractErrorMessage(err),
+      })
     }
   }
 
@@ -209,6 +276,7 @@ export default function ProductPage() {
       code: detail.code,
       packing_size_id: detail.packing_size_id,
       qty_per_box: detail.qty_per_box,
+      wholesale_price: detail.rate_per_unit ?? '',
       retail_price: detail.retail_price,
       mrp: detail.mrp,
     })
@@ -218,10 +286,15 @@ export default function ProductPage() {
     setDetailModalOpen(true)
   }
 
-  async function handleDetailSubmit(e) {
+  function handleDetailSubmit(e) {
     e.preventDefault()
-    setSavingDetail(true)
     setDetailFormError(null)
+    setDetailConfirmOpen(true)
+  }
+
+  async function doSaveDetail() {
+    setDetailConfirmOpen(false)
+    setSavingDetail(true)
     try {
       const productId = Number(detailForm.product_id)
       const payload = {
@@ -229,7 +302,7 @@ export default function ProductPage() {
         product_id: productId,
         packing_size_id: Number(detailForm.packing_size_id),
         qty_per_box: Number(detailForm.qty_per_box),
-        rate_per_unit: Number(detailForm.mrp),
+        rate_per_unit: detailForm.wholesale_price === '' ? null : Number(detailForm.wholesale_price),
         retail_price: Number(detailForm.retail_price),
         mrp: Number(detailForm.mrp),
       }
@@ -240,8 +313,18 @@ export default function ProductPage() {
       }
       setDetailModalOpen(false)
       await Promise.all([loadDetails(productId), load()])
+      const packLabel = `${detailForm.code || detailProductName} (${detailForm.qty_per_box}/box)`
+      setResultDialog({
+        variant: 'success',
+        title: editingDetailId ? 'Pack Size Updated Successfully' : 'Pack Size Added Successfully',
+        message: `"${packLabel}" has been ${editingDetailId ? 'updated' : 'added'} successfully.`,
+      })
     } catch (err) {
-      setDetailFormError(extractErrorMessage(err))
+      setResultDialog({
+        variant: 'error',
+        title: 'Failed to Save Pack Size',
+        message: extractErrorMessage(err),
+      })
     } finally {
       setSavingDetail(false)
     }
@@ -249,15 +332,11 @@ export default function ProductPage() {
 
   return (
     <div>
-      <header className="border-b border-brand-200 bg-brand-100">
-        <div className="px-6 py-5">
-          <h1 className="text-lg font-semibold text-slate-800">Product</h1>
-          <p className="text-sm text-slate-400">Manage products and pack sizes</p>
-        </div>
-      </header>
+      
 
       <main className="space-y-4 px-6 py-6">
       <PageToolbar
+        title="Product"
         search={search}
         onSearchChange={setSearch}
         searchPlaceholder="Search by code or name..."
@@ -420,10 +499,11 @@ export default function ProductPage() {
                               <table className="w-full border-collapse text-left text-sm">
                                 <thead>
                                   <tr className="border-b border-slate-100 text-xs uppercase tracking-wide text-slate-400">
-                                    <th className="px-4 py-2 font-medium">Code</th>
+                                    <th className="px-4 py-2 font-medium">Pack Code</th>
                                     <th className="px-4 py-2 font-medium">Packing Size</th>
                                     <th className="px-4 py-2 text-right font-medium">Qty / Box</th>
                                     <th className="px-4 py-2 text-right font-medium">MRP</th>
+                                    <th className="px-4 py-2 text-right font-medium">Wholesale</th>
                                     <th className="px-4 py-2 text-right font-medium">Retail Price</th>
                                     <th className="px-4 py-2 text-right font-medium">Actions</th>
                                   </tr>
@@ -436,6 +516,9 @@ export default function ProductPage() {
                                       <td className="px-4 py-2.5 text-right tabular-nums">{detail.qty_per_box}</td>
                                       <td className="px-4 py-2.5 text-right tabular-nums">
                                         {formatCurrency(detail.mrp)}
+                                      </td>
+                                      <td className="px-4 py-2.5 text-right tabular-nums">
+                                        {formatCurrency(detail.rate_per_unit)}
                                       </td>
                                       <td className="px-4 py-2.5 text-right tabular-nums">
                                         {formatCurrency(detail.retail_price)}
@@ -491,7 +574,8 @@ export default function ProductPage() {
             </>
           }
         >
-          <form id="product-form" onSubmit={handleProductSubmit} className="space-y-4">
+{editingProductId ? (
+          <form id="product-form" onSubmit={handleProductUpdate} className="space-y-4">
             {productFormError && (
               <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-600">
                 {productFormError}
@@ -508,15 +592,16 @@ export default function ProductPage() {
                   <option value="" disabled>
                     Select category
                   </option>
-                  {categories.map((c) => (
+                  {categoryOptions.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
+                      {!categories.some((x) => x.id === c.id) ? ' (inactive)' : ''}
                     </option>
                   ))}
                 </Select>
               </div>
               <div>
-                <FieldLabel required>Barcode / Product Code</FieldLabel>
+                <FieldLabel required>Product Code</FieldLabel>
                 <TextInput
                   required
                   value={productForm.code}
@@ -535,63 +620,6 @@ export default function ProductPage() {
                 placeholder="Product name"
               />
             </div>
-
-            {!editingProductId && (
-              <>
-                <FormRow cols={2}>
-                  <div>
-                    <FieldLabel required>Packing Size</FieldLabel>
-                    <Select
-                      required
-                      value={productForm.packing_size_id}
-                      onChange={(e) => setProductForm({ ...productForm, packing_size_id: e.target.value })}
-                    >
-                      <option value="" disabled>
-                        Select packing size
-                      </option>
-                      {packingSizes.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.label}
-                        </option>
-                      ))}
-                    </Select>
-                  </div>
-                  <div>
-                    <FieldLabel required>Qty per Box</FieldLabel>
-                    <TextInput
-                      required
-                      type="number"
-                      min="0"
-                      value={productForm.qty_per_box}
-                      onChange={(e) => setProductForm({ ...productForm, qty_per_box: e.target.value })}
-                    />
-                  </div>
-                </FormRow>
-
-                <FormRow cols={2}>
-                  <div>
-                    <FieldLabel>MRP (INR)</FieldLabel>
-                    <TextInput
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={productForm.mrp}
-                      onChange={(e) => setProductForm({ ...productForm, mrp: e.target.value })}
-                    />
-                  </div>
-                  <div>
-                    <FieldLabel>Retail Price (INR)</FieldLabel>
-                    <TextInput
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={productForm.retail_price}
-                      onChange={(e) => setProductForm({ ...productForm, retail_price: e.target.value })}
-                    />
-                  </div>
-                </FormRow>
-              </>
-            )}
 
             <FormRow cols={3}>
               <div>
@@ -633,14 +661,17 @@ export default function ProductPage() {
                 placeholder="Optional description"
               />
             </div>
-
-            {!editingProductId && (
-              <p className="text-xs text-slate-400">
-                This creates the product with its first pack size. Add more pack sizes later by expanding the
-                product row below.
-              </p>
-            )}
           </form>
+        ) : (
+          <AddProductForm
+            formId="product-form"
+            categories={categories}
+            packingSizes={packingSizes}
+            onSubmit={handleProductCreate}
+            onSavingChange={setSavingProduct}
+            // showWholesale
+          />
+        )}
         </Modal>
       )}
 
@@ -682,7 +713,7 @@ export default function ProductPage() {
 
             <FormRow cols={2}>
               <div>
-                <FieldLabel required>Code</FieldLabel>
+                <FieldLabel required>Pack Code</FieldLabel>
                 <TextInput
                   required
                   value={detailForm.code}
@@ -710,7 +741,7 @@ export default function ProductPage() {
               </div>
             </FormRow>
 
-            <FormRow cols={3}>
+            <FormRow cols={4}>
               <div>
                 <FieldLabel required>Qty per Box</FieldLabel>
                 <TextInput
@@ -733,6 +764,16 @@ export default function ProductPage() {
                 />
               </div>
               <div>
+                <FieldLabel>Wholesale / TCD Price (INR)</FieldLabel>
+                <TextInput
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={detailForm.wholesale_price}
+                  onChange={(e) => setDetailForm({ ...detailForm, wholesale_price: e.target.value })}
+                />
+              </div>
+              <div>
                 <FieldLabel required>Retail Price (INR)</FieldLabel>
                 <TextInput
                   required
@@ -747,6 +788,48 @@ export default function ProductPage() {
           </form>
         </Modal>
       )}
+      <ConfirmDialog
+        open={deleteTarget != null}
+        title="Delete Product?"
+        message={
+          deleteTarget
+            ? `Are you sure you want to delete "${deleteTarget.name}"? This action cannot be undone.`
+            : ''
+        }
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={confirmDeleteProduct}
+      />
+      <ConfirmDialog
+        open={productConfirmOpen}
+        title={editingProductId ? 'Save Product?' : 'Add Product?'}
+        message={
+          editingProductId
+            ? `Are you sure you want to save changes to "${productForm.name.trim() || 'this product'}"?`
+            : `Are you sure you want to add "${pendingProductValues?.name?.trim() || 'this product'}"?`
+        }
+        confirmLabel="Save"
+        onCancel={() => setProductConfirmOpen(false)}
+        onConfirm={editingProductId ? doUpdateProduct : doCreateProduct}
+        busy={savingProduct}
+      />
+      <ConfirmDialog
+        open={detailConfirmOpen}
+        title={editingDetailId ? 'Save Pack Size?' : 'Add Pack Size?'}
+        message={`Are you sure you want to ${
+          editingDetailId ? 'save changes to' : 'add'
+        } "${detailForm.code || detailProductName}"?`}
+        confirmLabel="Save"
+        onCancel={() => setDetailConfirmOpen(false)}
+        onConfirm={doSaveDetail}
+        busy={savingDetail}
+      />
+      <AlertDialog
+        open={resultDialog != null}
+        variant={resultDialog?.variant ?? 'success'}
+        title={resultDialog?.title ?? ''}
+        message={resultDialog?.message ?? ''}
+        onClose={() => setResultDialog(null)}
+      />
       </main>
     </div>
   )

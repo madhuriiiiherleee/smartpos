@@ -16,13 +16,15 @@ import { customersApi } from '../../api/master'
 import { companyProfileApi } from '../../api/company'
 import { extractErrorMessage, salesApi } from '../../api/sales'
 import Modal from '../../components/master/Modal'
+import ConfirmDialog from '../../components/shared/ConfirmDialog'
 import SearchableSelect from '../../components/master/SearchableSelect'
 import SalesInvoiceBody from '../../components/sales/SalesInvoiceBody'
 import { FieldLabel, TextInput } from '../../components/master/FormField'
 import { formatCurrency } from '../../lib/format'
+import { withBase } from '../../lib/url'
 
 function invoiceUrl(id, size) {
-  const path = `${import.meta.env.BASE_URL}sales/invoice/${id}`.replace(/\/+/g, '/')
+  const path = withBase(`sales/invoice/${id}`)
   return `${path}?autoprint=1&size=${size}`
 }
 
@@ -49,6 +51,7 @@ export default function ViewSalesPage() {
   const [company, setCompany] = useState(null)
   const [viewOpen, setViewOpen] = useState(false)
   const [viewing, setViewing] = useState(null)
+  const [deleteTarget, setDeleteTarget] = useState(null)
 
   useEffect(() => {
     customersApi.list({ active: true }).then(setCustomers)
@@ -82,12 +85,31 @@ export default function ViewSalesPage() {
   }
 
   async function handleDelete(sale) {
-    if (!window.confirm(`Delete invoice "${sale.invoice_no}"? This cannot be undone.`)) return
+    setDeleteTarget(sale)
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return
+    const sale = deleteTarget
+    setDeleteTarget(null)
     setListError(null)
     setListNotice(null)
     try {
       await salesApi.remove(sale.id)
-      await load()
+      const data = await salesApi.list({
+        date_from: appliedFilters.dateFrom,
+        date_to: appliedFilters.dateTo,
+        customer_id: appliedFilters.customerId,
+        q: appliedFilters.q,
+        page,
+        page_size: PAGE_SIZE,
+      })
+      const maxPage = Math.max(1, Math.ceil(data.total / PAGE_SIZE))
+      if (page > maxPage) {
+        setPage(maxPage)
+      } else {
+        setResult(data)
+      }
     } catch (err) {
       setListError(extractErrorMessage(err))
     }
@@ -125,25 +147,19 @@ export default function ViewSalesPage() {
 
   return (
     <div className={printSize === 'A5' ? 'invoice-print-a5' : 'invoice-print-a4'}>
-      <header className="border-b border-brand-200 bg-brand-100 print:hidden">
-        <div className="flex flex-col gap-3 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-lg font-semibold text-slate-800">View Sales</h1>
-            <p className="text-sm text-slate-400">Browse and manage recorded sales invoices</p>
-          </div>
+      <h1 className="hidden px-1 pb-3 text-lg font-semibold text-slate-800 print:block uppercase tracking-wide">Sales Invoices</h1>
+
+      <main className="space-y-4 px-6 py-6 print:space-y-0 print:p-[12mm]">
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between print:hidden">
+          <h1 className="text-2xl font-bold uppercase tracking-wide text-slate-800">View Sales</h1>
           <Link
             to="/sales/entry"
-            className="flex items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-brand-700"
+            className="flex items-center justify-center gap-1.5 rounded-lg bg-[#103252] px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[#0c263e]"
           >
             <Plus size={16} strokeWidth={2.5} />
             New Sale
           </Link>
         </div>
-      </header>
-
-      <h1 className="hidden px-1 pb-3 text-lg font-semibold text-slate-800 print:block">Sales Invoices</h1>
-
-      <main className="space-y-4 px-6 py-6 print:space-y-0 print:p-[12mm]">
         {listError && (
           <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">
             {listError}
@@ -155,7 +171,7 @@ export default function ViewSalesPage() {
           </div>
         )}
 
-        <div className="rounded-2xl border-t-4 border-brand-500 bg-white p-5 shadow-sm ring-1 ring-slate-900/5 print:hidden">
+        <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-900/5 print:hidden">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-6">
             <div>
               <FieldLabel>From Date</FieldLabel>
@@ -373,6 +389,18 @@ export default function ViewSalesPage() {
           )}
         </Modal>
       )}
+
+      <ConfirmDialog
+        open={deleteTarget != null}
+        title="Delete Invoice?"
+        message={
+          deleteTarget
+            ? `Are you sure you want to delete "${deleteTarget.invoice_no}"? This action cannot be undone.`
+            : ''
+        }
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+      />
     </div>
   )
 }

@@ -96,15 +96,13 @@ export default function GstReportPage({ reportKey }) {
 
   return (
     <div>
-      <header className="border-b border-brand-200 bg-brand-100">
-        <div className="px-6 py-5">
-          <h1 className="text-lg font-semibold text-slate-800">{config.title}</h1>
-          <p className="text-sm text-slate-400">{config.subtitle}</p>
-        </div>
-      </header>
+      
 
       <main className="space-y-4 px-6 py-6">
-        <div className="rounded-2xl border-t-4 border-brand-500 bg-white p-5 shadow-sm ring-1 ring-slate-900/5">
+        <div className="mb-6 flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-slate-800 uppercase tracking-wide">{config.title}</h1>
+        </div>
+        <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-900/5">
           <div className="flex flex-wrap items-end gap-3">
             <div>
               <FieldLabel required>Financial Year</FieldLabel>
@@ -145,11 +143,15 @@ export default function GstReportPage({ reportKey }) {
               Search
             </button>
             <a
-              href={year && month ? reportsApi.exportUrl(reportKey, year, month) : undefined}
+              href={
+                appliedYear && appliedMonth
+                  ? reportsApi.exportUrl(reportKey, appliedYear, appliedMonth)
+                  : undefined
+              }
               onClick={(e) => {
-                if (!year || !month) {
+                if (!appliedYear || !appliedMonth) {
                   e.preventDefault()
-                  setFilterError('Select a Financial Year and Month.')
+                  setFilterError('Run a search first — the export follows the applied year and month.')
                 }
               }}
               className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"

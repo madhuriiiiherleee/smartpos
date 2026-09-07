@@ -3,10 +3,11 @@ import { Pencil } from 'lucide-react'
 import { extractErrorMessage, vendorsApi } from '../../api/master'
 import DataTable from '../../components/master/DataTable'
 import Modal from '../../components/master/Modal'
+import AlertDialog from '../../components/shared/AlertDialog'
+import ConfirmDialog from '../../components/shared/ConfirmDialog'
 import PageToolbar from '../../components/master/PageToolbar'
+import PartyForm from '../../components/master/PartyForm'
 import ToggleSwitch from '../../components/master/ToggleSwitch'
-import { FieldLabel, FormRow, TextInput } from '../../components/master/FormField'
-import { AddressFields } from '../../components/master/AddressFields'
 import { useDebouncedValue } from '../../lib/useDebouncedValue'
 
 const EMPTY_FORM = {
@@ -34,6 +35,8 @@ export default function VendorPage() {
   const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState(null)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [resultDialog, setResultDialog] = useState(null)
 
   async function load() {
     setLoading(true)
@@ -75,10 +78,16 @@ export default function VendorPage() {
     setModalOpen(true)
   }
 
-  async function handleSubmit(e) {
+  function handleSubmit(e) {
     e.preventDefault()
-    setSaving(true)
     setFormError(null)
+    setConfirmOpen(true)
+  }
+
+  async function doSave() {
+    setConfirmOpen(false)
+    setSaving(true)
+    const vendorName = form.name.trim()
     try {
       if (editingId) {
         await vendorsApi.update(editingId, form)
@@ -87,8 +96,17 @@ export default function VendorPage() {
       }
       setModalOpen(false)
       await load()
+      setResultDialog({
+        variant: 'success',
+        title: editingId ? 'Vendor Updated Successfully' : 'Vendor Added Successfully',
+        message: `"${vendorName}" has been ${editingId ? 'updated' : 'added'} successfully.`,
+      })
     } catch (err) {
-      setFormError(extractErrorMessage(err))
+      setResultDialog({
+        variant: 'error',
+        title: 'Failed to Save Vendor',
+        message: extractErrorMessage(err),
+      })
     } finally {
       setSaving(false)
     }
@@ -105,15 +123,11 @@ export default function VendorPage() {
 
   return (
     <div>
-      <header className="border-b border-brand-200 bg-brand-100">
-        <div className="px-6 py-5">
-          <h1 className="text-lg font-semibold text-slate-800">Vendor</h1>
-          <p className="text-sm text-slate-400">Manage vendor and supplier records</p>
-        </div>
-      </header>
+      
 
       <main className="space-y-4 px-6 py-6">
       <PageToolbar
+        title="Vendor"
         search={search}
         onSearchChange={setSearch}
         searchPlaceholder="Search by vendor name..."
@@ -182,52 +196,28 @@ export default function VendorPage() {
                 {formError}
               </div>
             )}
-            <div>
-              <FieldLabel required>Vendor Name</FieldLabel>
-              <TextInput
-                required
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                placeholder="Vendor / supplier name"
-              />
-            </div>
-
-            <FormRow cols={2}>
-              <div>
-                <FieldLabel>Contact Person</FieldLabel>
-                <TextInput
-                  value={form.contact_person}
-                  onChange={(e) => setForm({ ...form, contact_person: e.target.value })}
-                />
-              </div>
-              <div>
-                <FieldLabel>Phone</FieldLabel>
-                <TextInput value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-              </div>
-            </FormRow>
-
-            <FormRow cols={2}>
-              <div>
-                <FieldLabel>Email</FieldLabel>
-                <TextInput
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                />
-              </div>
-              <div>
-                <FieldLabel>GST Number</FieldLabel>
-                <TextInput
-                  value={form.gst_number}
-                  onChange={(e) => setForm({ ...form, gst_number: e.target.value })}
-                />
-              </div>
-            </FormRow>
-
-            <AddressFields value={form} onChange={(patch) => setForm({ ...form, ...patch })} />
+            <PartyForm variant="vendor" form={form} onChange={setForm} />
           </form>
         </Modal>
       )}
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Save Vendor?"
+        message={`Are you sure you want to ${editingId ? 'save changes to' : 'add'} "${
+          form.name.trim() || 'this vendor'
+        }"?`}
+        confirmLabel="Save"
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={doSave}
+        busy={saving}
+      />
+      <AlertDialog
+        open={resultDialog != null}
+        variant={resultDialog?.variant ?? 'success'}
+        title={resultDialog?.title ?? ''}
+        message={resultDialog?.message ?? ''}
+        onClose={() => setResultDialog(null)}
+      />
       </main>
     </div>
   )

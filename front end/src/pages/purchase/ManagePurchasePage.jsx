@@ -80,24 +80,19 @@ export default function ManagePurchasePage() {
 
   return (
     <div>
-      <header className="border-b border-brand-200 bg-brand-100">
-        <div className="flex flex-col gap-3 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="text-lg font-semibold text-slate-800">Manage Purchase</h1>
-            <p className="text-sm text-slate-400">View and manage recorded purchase invoices</p>
-          </div>
+      <main className="space-y-4 px-6 py-6">
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-2xl font-bold uppercase tracking-wide text-slate-800">Manage Purchase</h1>
           <Link
             to="/purchase/entry"
-            className="flex items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-brand-700"
+            className="flex items-center justify-center gap-1.5 rounded-lg bg-[#103252] px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[#0c263e]"
           >
             <Plus size={16} strokeWidth={2.5} />
             New Purchase
           </Link>
         </div>
-      </header>
 
-      <main className="space-y-4 px-6 py-6">
-        <div className="rounded-2xl border-t-4 border-brand-500 bg-white p-5 shadow-sm ring-1 ring-slate-900/5">
+        <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-900/5">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
             <div>
               <FieldLabel>From Date</FieldLabel>

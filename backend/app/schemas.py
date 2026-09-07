@@ -4,6 +4,7 @@ from pydantic import BaseModel
 class DashboardSummary(BaseModel):
     purchase_register: float
     sales_order_count: int
+    sales_count: int
     sales_register: float
     customer_payment: float
 

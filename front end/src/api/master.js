@@ -1,14 +1,9 @@
 import { createClient } from './client'
+import { buildParams } from './utils'
 
 const client = createClient('/api/master')
 
-function buildParams(params = {}) {
-  const cleaned = {}
-  Object.entries(params).forEach(([key, value]) => {
-    if (value !== '' && value !== null && value !== undefined) cleaned[key] = value
-  })
-  return cleaned
-}
+export { buildParams, extractErrorMessage } from './utils'
 
 function makeResource(path) {
   return {
@@ -45,8 +40,4 @@ export const financialYearsApi = {
   list: async () => (await client.get('/financial-years')).data,
   create: async (payload) => (await client.post('/financial-years', payload)).data,
   activate: async (id) => (await client.patch(`/financial-years/${id}/activate`)).data,
-}
-
-export function extractErrorMessage(error) {
-  return error?.response?.data?.detail || 'Something went wrong. Please try again.'
 }

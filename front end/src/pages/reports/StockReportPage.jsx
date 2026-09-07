@@ -42,17 +42,15 @@ export default function StockReportPage() {
 
   return (
     <div>
-      <header className="border-b border-brand-200 bg-brand-100 print:hidden">
-        <div className="px-6 py-5">
-          <h1 className="text-lg font-semibold text-slate-800">Stock Report</h1>
-          <p className="text-sm text-slate-400">Current available stock by product</p>
-        </div>
-      </header>
+      
 
-      <h1 className="hidden px-1 pb-3 text-lg font-semibold text-slate-800 print:block">Stock Report</h1>
+      <h1 className="hidden px-1 pb-3 text-lg font-semibold text-slate-800 print:block uppercase tracking-wide">Stock Report</h1>
 
       <main className="space-y-4 px-6 py-6 print:space-y-0 print:p-[12mm]">
-        <div className="rounded-2xl border-t-4 border-brand-500 bg-white p-5 shadow-sm ring-1 ring-slate-900/5 print:hidden">
+        <div className="mb-6 flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-slate-800 uppercase tracking-wide">Stock Report</h1>
+        </div>
+        <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-900/5 print:hidden">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div>
               <FieldLabel>Category</FieldLabel>

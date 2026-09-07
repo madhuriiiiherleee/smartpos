@@ -31,6 +31,16 @@ SERIES_KEY = "sales"
 PREFIX = "INV"
 
 
+def _ensure_no_returns(db: Session, sale_id: int) -> None:
+    """Reject any edit/delete that would orphan SalesReturnItem rows
+    (which hold a hard FK to sale_items)."""
+    if db.query(SalesReturn).filter(SalesReturn.sale_id == sale_id).first():
+        raise HTTPException(
+            status_code=409,
+            detail="This sale has a credit note / return against it and cannot be modified.",
+        )
+
+
 def _available_units(db: Session, product_detail_id: int, exclude_sale_id: int | None = None) -> int:
     """Unit-level running stock for one SKU (ProductDetail): purchased - sold(+free) + returned.
 
@@ -98,9 +108,10 @@ def list_routes(db: Session = Depends(get_db)):
 
 
 @router.get("/available-quantity", response_model=AvailableQuantityResponse)
-def get_available_quantity(product_detail_id: int, db: Session = Depends(get_db)):
+def get_available_quantity(product_detail_id: int, exclude_sale_id: int | None = None, db: Session = Depends(get_db)):
     return AvailableQuantityResponse(
-        product_detail_id=product_detail_id, available_quantity=_available_units(db, product_detail_id)
+        product_detail_id=product_detail_id,
+        available_quantity=_available_units(db, product_detail_id, exclude_sale_id=exclude_sale_id),
     )
 
 
@@ -108,13 +119,17 @@ def get_available_quantity(product_detail_id: int, db: Session = Depends(get_db)
 
 
 def _max_customer_price(db: Session, product_detail_id: int, customer_margin: float) -> float | None:
-    """Customer Selling Price = MRP - (MRP x Customer Margin / 100) — the ceiling a sale
-    line's price must not exceed, so the backend never blindly trusts a frontend-submitted
-    price. Returns None if the pack size can't be resolved (nothing to validate against)."""
+    """Customer Selling Price = per-piece MRP - (per-piece MRP x Customer Margin / 100) —
+    the per-unit ceiling a sale line's price must not exceed, so the backend never blindly
+    trusts a frontend-submitted price. MRP is a per-box value in this system, so the ceiling
+    is derived from MRP divided by the pack's qty_per_box (the per-piece MRP). Returns None
+    if the pack size can't be resolved (nothing to validate against)."""
     detail = db.get(ProductDetail, product_detail_id)
     if detail is None:
         return None
-    return round(float(detail.mrp) * (1 - customer_margin / 100), 2)
+    qty_per_box = detail.qty_per_box or 1
+    unit_mrp = float(detail.mrp) / qty_per_box
+    return round(unit_mrp * (1 - customer_margin / 100), 2)
 
 
 def _build_sale_items(db: Session, payload_items, customer_margin: float) -> tuple[list[SaleItem], float, float, float]:
@@ -161,6 +176,7 @@ def _build_sale_items(db: Session, payload_items, customer_margin: float) -> tup
                 free_quantity=item.free_quantity,
                 uom=item.uom,
                 price=item.price,
+                price_inc_gst=item.price_inc_gst,
                 discount_percent=item.discount_percent,
                 gst_percent=item.gst_percent,
                 is_igst=item.is_igst,
@@ -321,13 +337,19 @@ def list_delivery(
 
 
 @router.post("/delivery/mark-delivered", response_model=DeliveryListResponse)
-def mark_delivered(payload: MarkDeliveredRequest, db: Session = Depends(get_db)):
+def mark_delivered(
+    payload: MarkDeliveredRequest,
+    route: str | None = None,
+    delivery_status: str | None = None,
+    q: str | None = None,
+    db: Session = Depends(get_db),
+):
     sales = db.execute(select(Sale).where(Sale.id.in_(payload.sale_ids))).scalars().all()
     for sale in sales:
         sale.delivery_status = "Delivered"
         sale.delivery_date = date.today()
     db.commit()
-    return list_delivery(db=db)
+    return list_delivery(route=route, delivery_status=delivery_status, q=q, db=db)
 
 
 @router.get("/{sale_id}", response_model=SaleRead)
@@ -379,11 +401,7 @@ def delete_sale(sale_id: int, db: Session = Depends(get_db)):
     sale = db.get(Sale, sale_id)
     if not sale:
         raise HTTPException(status_code=404, detail="Sale not found")
-    if db.query(SalesReturn).filter(SalesReturn.sale_id == sale_id).first():
-        raise HTTPException(
-            status_code=400,
-            detail="This sale has a credit note / return against it and cannot be deleted.",
-        )
+    _ensure_no_returns(db, sale_id)
     db.delete(sale)
     db.commit()
 
@@ -394,6 +412,8 @@ def update_sale(sale_id: int, payload: SaleUpdate, db: Session = Depends(get_db)
     if not sale:
         raise HTTPException(status_code=404, detail="Sale not found")
 
+    _ensure_no_returns(db, sale_id)
+
     customer = db.get(Customer, payload.customer_id)
     if not customer:
         raise HTTPException(status_code=400, detail="Customer not found")
@@ -401,8 +421,10 @@ def update_sale(sale_id: int, payload: SaleUpdate, db: Session = Depends(get_db)
     _check_stock(db, payload.items, exclude_sale_id=sale_id)
     items, taxable_total, gst_total, grand_total = _build_sale_items(db, payload.items, float(customer.margin))
     final_amount = round(grand_total - payload.discount, 2)
+    financial_year = resolve_financial_year(db, payload.sale_date)
 
     sale.sale_date = payload.sale_date
+    sale.financial_year_id = financial_year.id
     sale.customer_id = payload.customer_id
     sale.selling_price_type = payload.selling_price_type
     sale.route = payload.route
@@ -421,6 +443,10 @@ def update_sale(sale_id: int, payload: SaleUpdate, db: Session = Depends(get_db)
     sale.amount = final_amount
     sale.items = items
 
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Could not save sale — please retry") from exc
     db.refresh(sale)
     return _sale_read(db, sale)

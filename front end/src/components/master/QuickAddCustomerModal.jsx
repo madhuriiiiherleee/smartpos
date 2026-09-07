@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { customersApi, extractErrorMessage } from '../../api/master'
-import { FieldLabel, FormRow, TextInput } from './FormField'
-import { AddressFields } from './AddressFields'
+import PartyForm from './PartyForm'
 import Modal from './Modal'
+import AlertDialog from '../shared/AlertDialog'
+import ConfirmDialog from '../shared/ConfirmDialog'
 
 const EMPTY_QUICK_CUSTOMER = {
   name: '',
@@ -24,19 +25,36 @@ export default function QuickAddCustomerModal({ onClose, onCreated }) {
   const [quickForm, setQuickForm] = useState(EMPTY_QUICK_CUSTOMER)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [resultDialog, setResultDialog] = useState(null)
 
-  async function handleSubmit(e) {
+  function handleSubmit(e) {
     e.preventDefault()
-    setSaving(true)
     setError(null)
+    setConfirmOpen(true)
+  }
+
+  async function doSave() {
+    setConfirmOpen(false)
+    setSaving(true)
+    const customerName = quickForm.name.trim()
     try {
       const created = await customersApi.create({
         ...quickForm,
         margin: Number(quickForm.margin) || 0,
       })
-      onCreated(created)
+      setResultDialog({
+        variant: 'success',
+        title: 'Customer Added Successfully',
+        message: `"${customerName}" has been added successfully.`,
+        completed: created,
+      })
     } catch (err) {
-      setError(extractErrorMessage(err))
+      setResultDialog({
+        variant: 'error',
+        title: 'Failed to Add Customer',
+        message: extractErrorMessage(err),
+      })
     } finally {
       setSaving(false)
     }
@@ -71,84 +89,31 @@ export default function QuickAddCustomerModal({ onClose, onCreated }) {
         {error && (
           <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-600">{error}</div>
         )}
-        <FormRow cols={2}>
-          <div>
-            <FieldLabel required>Customer Name</FieldLabel>
-            <TextInput
-              required
-              value={quickForm.name}
-              onChange={(e) => setQuickForm({ ...quickForm, name: e.target.value })}
-            />
-          </div>
-          <div>
-            <FieldLabel required>Business Name</FieldLabel>
-            <TextInput
-              required
-              value={quickForm.business_name}
-              onChange={(e) => setQuickForm({ ...quickForm, business_name: e.target.value })}
-            />
-          </div>
-        </FormRow>
-
-        <FormRow cols={2}>
-          <div>
-            <FieldLabel>Contact Person</FieldLabel>
-            <TextInput
-              value={quickForm.contact_person}
-              onChange={(e) => setQuickForm({ ...quickForm, contact_person: e.target.value })}
-            />
-          </div>
-          <div>
-            <FieldLabel>Phone</FieldLabel>
-            <TextInput
-              value={quickForm.phone}
-              onChange={(e) => setQuickForm({ ...quickForm, phone: e.target.value })}
-            />
-          </div>
-        </FormRow>
-
-        <FormRow cols={2}>
-          <div>
-            <FieldLabel>Mobile Number 2</FieldLabel>
-            <TextInput
-              value={quickForm.mobile_number_2}
-              onChange={(e) => setQuickForm({ ...quickForm, mobile_number_2: e.target.value })}
-            />
-          </div>
-          <div>
-            <FieldLabel>Email</FieldLabel>
-            <TextInput
-              type="email"
-              value={quickForm.email}
-              onChange={(e) => setQuickForm({ ...quickForm, email: e.target.value })}
-            />
-          </div>
-        </FormRow>
-
-        <FormRow cols={2}>
-          <div>
-            <FieldLabel>GST Number</FieldLabel>
-            <TextInput
-              value={quickForm.gst_number}
-              onChange={(e) => setQuickForm({ ...quickForm, gst_number: e.target.value })}
-            />
-          </div>
-          <div>
-            <FieldLabel required>Margin (%)</FieldLabel>
-            <TextInput
-              required
-              type="number"
-              step="0.01"
-              min="0"
-              max="100"
-              value={quickForm.margin}
-              onChange={(e) => setQuickForm({ ...quickForm, margin: e.target.value })}
-            />
-          </div>
-        </FormRow>
-
-        <AddressFields value={quickForm} onChange={(patch) => setQuickForm({ ...quickForm, ...patch })} />
+        <PartyForm form={quickForm} onChange={setQuickForm} />
       </form>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Add Customer?"
+        message={`Are you sure you want to add "${quickForm.name.trim() || 'this customer'}"?`}
+        confirmLabel="Save"
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={doSave}
+        busy={saving}
+      />
+      <AlertDialog
+        open={resultDialog != null}
+        variant={resultDialog?.variant ?? 'success'}
+        title={resultDialog?.title ?? ''}
+        message={resultDialog?.message ?? ''}
+        onClose={() => {
+          const created = resultDialog?.completed
+          setResultDialog(null)
+          if (created && typeof onCreated === 'function') {
+            onCreated(created)
+          }
+        }}
+      />
     </Modal>
   )
 }

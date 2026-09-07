@@ -136,7 +136,7 @@ def _build_sales_b2b_rows(db: Session, year: str, month: str) -> list[GstReportR
                     gstin=sale.customer.gst_number,
                     invoice_no=sale.invoice_no,
                     invoice_date=sale.sale_date,
-                    grand_total=float(sale.amount),
+                    grand_total=round(amounts["taxable"] + amounts["gst"], 2),
                     tax_rate=rate,
                     taxable_amount=round(amounts["taxable"], 2),
                     igst_amount=round(amounts["igst"], 2),
@@ -220,7 +220,7 @@ def _build_purchase_gst_rows(db: Session, year: str, month: str) -> list[GstRepo
                     gstin=purchase.supplier.gst_number if purchase.supplier else None,
                     invoice_no=purchase.invoice_no,
                     invoice_date=purchase.purchase_date,
-                    grand_total=float(purchase.amount),
+                    grand_total=round(amounts["taxable"] + amounts["gst"], 2),
                     tax_rate=rate,
                     taxable_amount=round(amounts["taxable"], 2),
                     igst_amount=round(amounts["igst"], 2),
@@ -401,7 +401,7 @@ def export_report(report_key: str, year: str, month: str, db: Session = Depends(
 
     totals = _totals(rows)
     total_row = [""] * (1 + len(extra_columns))
-    total_row[0 if not extra_columns else 1] = "Grand Total"
+    total_row[0] = "Grand Total"
     total_row += [
         totals["grand_total"],
         "",

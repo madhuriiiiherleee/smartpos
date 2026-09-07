@@ -22,6 +22,7 @@ from datetime import date
 
 from sqlalchemy import func, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models import DocumentSeriesCounter, FinancialYear
@@ -31,8 +32,7 @@ def financial_year_label(start_year: int) -> str:
     return f"{start_year}-{(start_year + 1) % 100:02d}"
 
 
-def start_year_for(on_date: date) -> int:
-    return on_date.year if on_date.month >= 4 else on_date.year - 1
+def start_year_for(on_date: date) -> int:    return on_date.year if on_date.month >= 4 else on_date.year - 1
 
 
 def financial_year_bounds(start_year: int) -> tuple[date, date]:
@@ -46,17 +46,25 @@ def resolve_financial_year(db: Session, on_date: date) -> FinancialYear:
     if fy and fy.is_active:
         return fy
 
+    if fy is None:
+        # Row may be missing; create it atomically so two concurrent requests for a brand-new
+        # FY can't both insert the same start_year and hit the UNIQUE constraint. Nothing to
+        # do on conflict — the loser just reads the winner's committed row below.
+        db.execute(
+            pg_insert(FinancialYear)
+            .values(label=financial_year_label(start_year), start_year=start_year, is_active=False)
+            .on_conflict_do_nothing(index_elements=[FinancialYear.start_year])
+        )
+        db.flush()
+        fy = db.execute(select(FinancialYear).where(FinancialYear.start_year == start_year)).scalar_one_or_none()
+
     # Deactivate the currently-active year first, then activate the target —
     # in that order, so the partial unique index on is_active never sees two
     # true rows at once.
     db.execute(update(FinancialYear).where(FinancialYear.is_active == True).values(is_active=False))  # noqa: E712
     db.flush()
 
-    if fy:
-        fy.is_active = True
-    else:
-        fy = FinancialYear(label=financial_year_label(start_year), start_year=start_year, is_active=True)
-        db.add(fy)
+    fy.is_active = True
     db.flush()
     return fy
 

@@ -1,16 +1,11 @@
 import { createClient } from './client'
+import { buildParams } from './utils'
 
 const salesClient = createClient('/api/sales')
 const ordersClient = createClient('/api/sales-orders')
 const returnsClient = createClient('/api/sales-returns')
 
-function buildParams(params = {}) {
-  const cleaned = {}
-  Object.entries(params).forEach(([key, value]) => {
-    if (value !== '' && value !== null && value !== undefined) cleaned[key] = value
-  })
-  return cleaned
-}
+export { buildParams, extractErrorMessage } from './utils'
 
 export const salesApi = {
   nextInvoiceNumber: async (saleDate) =>
@@ -20,10 +15,13 @@ export const salesApi = {
   create: async (payload) => (await salesClient.post('', payload)).data,
   update: async (id, payload) => (await salesClient.put(`/${id}`, payload)).data,
   routes: async () => (await salesClient.get('/routes')).data,
-  availableQuantity: async (productDetailId) =>
-    (await salesClient.get('/available-quantity', { params: { product_detail_id: productDetailId } })).data,
+  availableQuantity: async (productDetailId, excludeSaleId) =>
+    (await salesClient.get('/available-quantity', {
+      params: buildParams({ product_detail_id: productDetailId, exclude_sale_id: excludeSaleId }),
+    })).data,
   delivery: async (params) => (await salesClient.get('/delivery', { params: buildParams(params) })).data,
-  markDelivered: async (saleIds) => (await salesClient.post('/delivery/mark-delivered', { sale_ids: saleIds })).data,
+  markDelivered: async (saleIds, params = {}) =>
+    (await salesClient.post('/delivery/mark-delivered', { sale_ids: saleIds }, { params: buildParams(params) })).data,
   remove: async (id) => (await salesClient.delete(`/${id}`)).data,
   sendMail: async (id) => (await salesClient.post(`/${id}/send-mail`)).data,
 }
@@ -43,8 +41,4 @@ export const salesReturnsApi = {
   create: async (payload) => (await returnsClient.post('', payload)).data,
   list: async (params) => (await returnsClient.get('', { params: buildParams(params) })).data,
   get: async (id) => (await returnsClient.get(`/${id}`)).data,
-}
-
-export function extractErrorMessage(error) {
-  return error?.response?.data?.detail || 'Something went wrong. Please try again.'
 }

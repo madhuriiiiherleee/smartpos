@@ -1,9 +1,10 @@
 import axios from 'axios'
+import { withBase } from '../lib/url'
 
-const LOGIN_PATH = `${import.meta.env.BASE_URL}login`.replace(/\/+/g, '/')
+const LOGIN_PATH = withBase('login')
 
 export function createClient(baseURL) {
-  const fullBaseURL = `${import.meta.env.BASE_URL}${baseURL}`.replace(/\/+/g, '/')
+  const fullBaseURL = withBase(baseURL)
   const client = axios.create({ baseURL: fullBaseURL, withCredentials: true })
   client.interceptors.response.use(
     (response) => response,

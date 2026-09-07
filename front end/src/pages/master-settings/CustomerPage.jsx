@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { Eye, Pencil, Trash2 } from 'lucide-react'
 import { customersApi, extractErrorMessage } from '../../api/master'
+import PartyForm from '../../components/master/PartyForm'
 import DataTable from '../../components/master/DataTable'
 import Modal from '../../components/master/Modal'
+import AlertDialog from '../../components/shared/AlertDialog'
+import ConfirmDialog from '../../components/shared/ConfirmDialog'
 import PageToolbar from '../../components/master/PageToolbar'
 import ToggleSwitch from '../../components/master/ToggleSwitch'
-import { FieldLabel, FormRow, TextInput } from '../../components/master/FormField'
-import { AddressFields } from '../../components/master/AddressFields'
+import { FieldLabel, FormRow } from '../../components/master/FormField'
 import { useDebouncedValue } from '../../lib/useDebouncedValue'
 
 const EMPTY_ROUTE = {
@@ -51,6 +53,9 @@ export default function CustomerPage() {
   const [formError, setFormError] = useState(null)
   const [viewingCustomer, setViewingCustomer] = useState(null)
   const [listError, setListError] = useState(null)
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [resultDialog, setResultDialog] = useState(null)
 
   async function load() {
     setLoading(true)
@@ -108,22 +113,28 @@ export default function CustomerPage() {
     setModalOpen(true)
   }
 
-  async function handleSubmit(e) {
+  function handleSubmit(e) {
     e.preventDefault()
-    setSaving(true)
     setFormError(null)
+    setConfirmOpen(true)
+  }
+
+  async function doSave() {
+    const payload = {
+      ...form,
+      margin: Number(form.margin) || 0,
+      // The route-editing UI was removed from this form, so the seeded default route has
+      // no route_name of its own. Name it after the customer instead of dropping it, so
+      // every customer still ends up with at least one usable route (Sales Entry's Route
+      // dropdown and delivery grouping both depend on customer.routes being non-empty).
+      routes: form.routes
+        .map((r) => ({ ...r, route_name: r.route_name.trim() || form.name.trim() || 'Default' }))
+        .filter((r) => r.route_name !== ''),
+    }
+    setConfirmOpen(false)
+    setSaving(true)
+    const customerName = form.name.trim()
     try {
-      const payload = {
-        ...form,
-        margin: Number(form.margin) || 0,
-        // The route-editing UI was removed from this form, so the seeded default route has
-        // no route_name of its own. Name it after the customer instead of dropping it, so
-        // every customer still ends up with at least one usable route (Sales Entry's Route
-        // dropdown and delivery grouping both depend on customer.routes being non-empty).
-        routes: form.routes
-          .map((r) => ({ ...r, route_name: r.route_name.trim() || form.name.trim() || 'Default' }))
-          .filter((r) => r.route_name !== ''),
-      }
       if (editingId) {
         await customersApi.update(editingId, payload)
       } else {
@@ -131,21 +142,46 @@ export default function CustomerPage() {
       }
       setModalOpen(false)
       await load()
+      setResultDialog({
+        variant: 'success',
+        title: editingId ? 'Customer Updated Successfully' : 'Customer Added Successfully',
+        message: `"${customerName}" has been ${editingId ? 'updated' : 'added'} successfully.`,
+      })
     } catch (err) {
-      setFormError(extractErrorMessage(err))
+      setResultDialog({
+        variant: 'error',
+        title: 'Failed to Save Customer',
+        message: extractErrorMessage(err),
+      })
     } finally {
       setSaving(false)
     }
   }
 
   async function handleDelete(customer) {
-    if (!window.confirm(`Delete customer "${customer.name}"? This cannot be undone.`)) return
+    setDeleteTarget(customer)
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return
+    const customer = deleteTarget
+    setDeleteTarget(null)
     setListError(null)
     try {
       await customersApi.remove(customer.id)
       await load()
+      setResultDialog({
+        variant: 'success',
+        title: 'Customer Deleted Successfully',
+        message: `"${customer.name}" has been deleted successfully.`,
+      })
     } catch (err) {
       setListError(extractErrorMessage(err))
+      setResultDialog({
+        variant: 'error',
+        title: 'Failed to Delete Customer',
+        message: extractErrorMessage(err),
+      })
     }
   }
 
@@ -160,15 +196,11 @@ export default function CustomerPage() {
 
   return (
     <div>
-      <header className="border-b border-brand-200 bg-brand-100">
-        <div className="px-6 py-5">
-          <h1 className="text-lg font-semibold text-slate-800">Customer</h1>
-          <p className="text-sm text-slate-400">Manage customer records and delivery routes</p>
-        </div>
-      </header>
+      
 
       <main className="space-y-4 px-6 py-6">
       <PageToolbar
+        title="Customer"
         search={search}
         onSearchChange={setSearch}
         searchPlaceholder="Search by customer name..."
@@ -259,80 +291,7 @@ export default function CustomerPage() {
                 {formError}
               </div>
             )}
-            <FormRow cols={2}>
-              <div>
-                <FieldLabel required>Customer Name</FieldLabel>
-                <TextInput
-                  required
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                />
-              </div>
-              <div>
-                <FieldLabel required>Business Name</FieldLabel>
-                <TextInput
-                  required
-                  value={form.business_name}
-                  onChange={(e) => setForm({ ...form, business_name: e.target.value })}
-                />
-              </div>
-            </FormRow>
-
-            <FormRow cols={2}>
-              <div>
-                <FieldLabel>Contact Person</FieldLabel>
-                <TextInput
-                  value={form.contact_person}
-                  onChange={(e) => setForm({ ...form, contact_person: e.target.value })}
-                />
-              </div>
-              <div>
-                <FieldLabel>Phone</FieldLabel>
-                <TextInput value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
-              </div>
-            </FormRow>
-
-            <FormRow cols={2}>
-              <div>
-                <FieldLabel>Mobile Number 2</FieldLabel>
-                <TextInput
-                  value={form.mobile_number_2}
-                  onChange={(e) => setForm({ ...form, mobile_number_2: e.target.value })}
-                />
-              </div>
-              <div>
-                <FieldLabel>Email</FieldLabel>
-                <TextInput
-                  type="email"
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                />
-              </div>
-            </FormRow>
-
-            <FormRow cols={2}>
-              <div>
-                <FieldLabel>GST Number</FieldLabel>
-                <TextInput
-                  value={form.gst_number}
-                  onChange={(e) => setForm({ ...form, gst_number: e.target.value })}
-                />
-              </div>
-              <div>
-                <FieldLabel required>Margin (%)</FieldLabel>
-                <TextInput
-                  required
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="0.01"
-                  value={form.margin}
-                  onChange={(e) => setForm({ ...form, margin: e.target.value })}
-                />
-              </div>
-            </FormRow>
-
-            <AddressFields value={form} onChange={(patch) => setForm({ ...form, ...patch })} />
+            <PartyForm form={form} onChange={setForm} />
           </form>
         </Modal>
       )}
@@ -364,6 +323,35 @@ export default function CustomerPage() {
           </div>
         </Modal>
       )}
+      <ConfirmDialog
+        open={deleteTarget != null}
+        title="Delete Customer?"
+        message={
+          deleteTarget
+            ? `Are you sure you want to delete "${deleteTarget.name}"? This action cannot be undone.`
+            : ''
+        }
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+      />
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Save Customer?"
+        message={`Are you sure you want to ${editingId ? 'save changes to' : 'add'} "${
+          form.name.trim() || 'this customer'
+        }"?`}
+        confirmLabel="Save"
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={doSave}
+        busy={saving}
+      />
+      <AlertDialog
+        open={resultDialog != null}
+        variant={resultDialog?.variant ?? 'success'}
+        title={resultDialog?.title ?? ''}
+        message={resultDialog?.message ?? ''}
+        onClose={() => setResultDialog(null)}
+      />
       </main>
     </div>
   )

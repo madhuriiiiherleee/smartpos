@@ -1,16 +1,14 @@
 import { useEffect, useState } from 'react'
-import { ArrowLeft } from 'lucide-react'
+
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { vendorsApi } from '../../api/master'
 import { extractErrorMessage, purchasesApi } from '../../api/purchase'
 import PurchaseItemForm from '../../components/purchase/PurchaseItemForm'
-import PurchaseItemsTable from '../../components/purchase/PurchaseItemsTable'
+import ItemsTable from '../../components/shared/ItemsTable'
+import AlertDialog from '../../components/shared/AlertDialog'
+import ConfirmDialog from '../../components/shared/ConfirmDialog'
 import { FieldLabel, Select, TextInput } from '../../components/master/FormField'
-import { formatCurrency3 } from '../../lib/format'
-
-function today() {
-  return new Date().toISOString().slice(0, 10)
-}
+import { formatCurrency3, today } from '../../lib/format'
 
 export default function PurchaseEntryPage() {
   const { id } = useParams()
@@ -21,14 +19,18 @@ export default function PurchaseEntryPage() {
   const [invoiceDate, setInvoiceDate] = useState(today())
   const [roundOff, setRoundOff] = useState('0')
   const [items, setItems] = useState([])
+  const [editingIndex, setEditingIndex] = useState(null)
 
   const [suppliers, setSuppliers] = useState([])
   const [supplierId, setSupplierId] = useState('')
   const [supplierError, setSupplierError] = useState(null)
+  const [duplicatePurchase, setDuplicatePurchase] = useState(null)
 
   const [loading, setLoading] = useState(isEdit)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [resultDialog, setResultDialog] = useState(null)
 
   useEffect(() => {
     vendorsApi.list({ active: true }).then((list) => {
@@ -43,16 +45,45 @@ export default function PurchaseEntryPage() {
 
   useEffect(() => {
     if (isEdit) {
-      purchasesApi.get(id).then((purchase) => {
-        setInvoiceNo(purchase.invoice_no)
-        setInvoiceDate(purchase.purchase_date)
-        setRoundOff(String(purchase.round_off ?? 0))
-        setItems(purchase.items)
-        setSupplierId(purchase.supplier_id ? String(purchase.supplier_id) : '')
-        setLoading(false)
-      })
+      purchasesApi
+        .get(id)
+        .then((purchase) => {
+          setInvoiceNo(purchase.invoice_no)
+          setInvoiceDate(purchase.purchase_date)
+          setRoundOff(String(purchase.round_off ?? 0))
+          setItems(purchase.items)
+          setSupplierId(purchase.supplier_id ? String(purchase.supplier_id) : '')
+          setLoading(false)
+        })
+        .catch((err) => {
+          setError(extractErrorMessage(err))
+          setLoading(false)
+        })
     }
   }, [id, isEdit])
+
+  useEffect(() => {
+    const trimmed = invoiceNo.trim()
+    if (!trimmed || !supplierId) {
+      setDuplicatePurchase(null)
+      return
+    }
+    const timeoutId = setTimeout(() => {
+      purchasesApi
+        .list({ supplier_id: supplierId, invoice_no: trimmed, page_size: 1 })
+        .then((res) => {
+          const found = res.items?.[0]
+          // Ignore a match against the purchase currently being edited.
+          if (found && String(found.id) !== String(id)) {
+            setDuplicatePurchase(found)
+          } else {
+            setDuplicatePurchase(null)
+          }
+        })
+        .catch(() => setDuplicatePurchase(null))
+    }, 400)
+    return () => clearTimeout(timeoutId)
+  }, [invoiceNo, supplierId, id])
 
   const taxableTotal = items.reduce((sum, i) => sum + i.taxable_amount, 0)
   const gstTotal = items.reduce((sum, i) => sum + i.gst_amount, 0)
@@ -64,11 +95,25 @@ export default function PurchaseEntryPage() {
     setItems((prev) => [...prev, item])
   }
 
-  function handleRemoveItem(index) {
-    setItems((prev) => prev.filter((_, i) => i !== index))
+  function handleUpdateItem(item) {
+    setItems((prev) => prev.map((existing, i) => (i === editingIndex ? item : existing)))
+    setEditingIndex(null)
   }
 
-  async function handleSave() {
+  function handleEditItem(index) {
+    setEditingIndex(index)
+  }
+
+  function handleCancelEdit() {
+    setEditingIndex(null)
+  }
+
+  function handleRemoveItem(index) {
+    setItems((prev) => prev.filter((_, i) => i !== index))
+    if (editingIndex === index) setEditingIndex(null)
+  }
+
+  function handleSave() {
     setError(null)
     if (!invoiceNo.trim()) {
       setError("Please enter the vendor's invoice number.")
@@ -82,7 +127,11 @@ export default function PurchaseEntryPage() {
       setError('Add at least one product before saving.')
       return
     }
+    setConfirmOpen(true)
+  }
 
+  async function doSave() {
+    setConfirmOpen(false)
     setSaving(true)
     try {
       const payload = {
@@ -101,13 +150,21 @@ export default function PurchaseEntryPage() {
           is_igst: i.is_igst || false,
         })),
       }
-      if (isEdit) {
-        await purchasesApi.update(id, payload)
-      } else {
-        await purchasesApi.create(payload)
-      }
-      navigate('/purchase/manage')
+      const saved = isEdit ? await purchasesApi.update(id, payload) : await purchasesApi.create(payload)
+      setResultDialog({
+        variant: 'success',
+        title: isEdit ? 'Purchase Updated Successfully' : 'Purchase Saved Successfully',
+        message: isEdit
+          ? 'Your purchase changes have been saved successfully.'
+          : `Invoice ${saved.invoice_no || ''} has been saved successfully.`,
+        onCloseNav: '/purchase/manage',
+      })
     } catch (err) {
+      setResultDialog({
+        variant: 'error',
+        title: isEdit ? 'Failed to Update Purchase' : 'Failed to Save Purchase',
+        message: extractErrorMessage(err),
+      })
       setError(extractErrorMessage(err))
     } finally {
       setSaving(false)
@@ -145,6 +202,17 @@ export default function PurchaseEntryPage() {
                 onChange={(e) => setInvoiceNo(e.target.value)}
                 placeholder="As printed on the vendor's invoice"
               />
+              {duplicatePurchase && (
+                <p className="mt-1.5 text-xs text-amber-600">
+                  Already entered: invoice {duplicatePurchase.invoice_no} dated{' '}
+                  {new Date(duplicatePurchase.purchase_date).toLocaleDateString('en-IN')}, ₹
+                  {Number(duplicatePurchase.amount).toLocaleString('en-IN')} —{' '}
+                  <Link to={`/purchase/entry/${duplicatePurchase.id}`} className="font-medium underline">
+                    open it
+                  </Link>{' '}
+                  instead of re-entering.
+                </p>
+              )}
             </div>
             <div>
               <FieldLabel required>Invoice Date</FieldLabel>
@@ -174,9 +242,20 @@ export default function PurchaseEntryPage() {
           </div>
         </div>
 
-        <PurchaseItemForm onAdd={handleAddItem} />
+        <PurchaseItemForm
+          onAdd={handleAddItem}
+          editingItem={editingIndex != null ? items[editingIndex] : null}
+          onUpdate={handleUpdateItem}
+          onCancelEdit={handleCancelEdit}
+        />
 
-        <PurchaseItemsTable items={items} onRemove={handleRemoveItem} />
+        <ItemsTable
+          items={items}
+          onRemove={handleRemoveItem}
+          onEdit={handleEditItem}
+          priceFieldName="purchase_price"
+          emptyMessage="No products added yet. Use the form above to add purchase items."
+        />
 
         <div className="flex flex-col items-stretch gap-4 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-900/5 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex flex-wrap gap-8">
@@ -204,28 +283,38 @@ export default function PurchaseEntryPage() {
           </button>
         </div>
       </main>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title={isEdit ? 'Save Purchase Changes?' : 'Save Purchase?'}
+        message={`Are you sure you want to ${isEdit ? 'save the changes to this purchase' : 'save this purchase'}?`}
+        confirmLabel="Save"
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={doSave}
+        busy={saving}
+      />
+      <AlertDialog
+        open={resultDialog != null}
+        variant={resultDialog?.variant ?? 'success'}
+        title={resultDialog?.title ?? ''}
+        message={resultDialog?.message ?? ''}
+        onClose={() => {
+          setResultDialog(null)
+          if (resultDialog?.onCloseNav && resultDialog.variant === 'success') {
+            navigate(resultDialog.onCloseNav)
+          }
+        }}
+      />
     </div>
   )
 }
 
 function PageHeader({ isEdit }) {
   return (
-    <header className="border-b border-brand-200 bg-brand-100">
-      <div className="flex items-center gap-3 px-6 py-5">
-        <Link
-          to="/purchase/manage"
-          aria-label="Back to Manage Purchase"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-500 transition hover:bg-white hover:text-brand-600"
-        >
-          <ArrowLeft size={18} />
-        </Link>
-        <div>
-          <h1 className="text-lg font-semibold text-slate-800">{isEdit ? 'Edit Purchase' : 'Purchase Entry'}</h1>
-          <p className="text-sm text-slate-400">
-            {isEdit ? 'Update this purchase invoice' : 'Record a new purchase invoice from a vendor'}
-          </p>
-        </div>
-      </div>
-    </header>
+    <div className="mb-6 flex items-center gap-3 px-6">
+      <h1 className="text-2xl font-bold uppercase tracking-wide text-slate-800">
+        {isEdit ? 'EDIT PURCHASE' : 'PURCHASE ENTRY'}
+      </h1>
+    </div>
   )
 }

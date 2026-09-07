@@ -3,11 +3,9 @@ import { ImagePlus, X } from 'lucide-react'
 import { companyProfileApi, extractErrorMessage } from '../api/company'
 import { FieldLabel, FormRow, TextArea, TextInput } from '../components/master/FormField'
 import { AddressFields } from '../components/master/AddressFields'
-
-function withBase(path) {
-  if (!path) return path
-  return `${import.meta.env.BASE_URL}${path}`.replace(/\/+/g, '/')
-}
+import { withBase } from '../lib/url'
+import AlertDialog from '../components/shared/AlertDialog'
+import ConfirmDialog from '../components/shared/ConfirmDialog'
 
 const EMPTY_FORM = {
   company_name: '',
@@ -43,6 +41,8 @@ export default function CompanyProfilePage({ embedded = false }) {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const [tab, setTab] = useState('footnote')
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [resultDialog, setResultDialog] = useState(null)
   const fileInputRef = useRef(null)
 
   async function load() {
@@ -64,16 +64,31 @@ export default function CompanyProfilePage({ embedded = false }) {
     setForm((f) => ({ ...f, [key]: value }))
   }
 
-  async function handleSave(e) {
+  function handleSave(e) {
     e.preventDefault()
-    setSaving(true)
     setError(null)
+    setConfirmOpen(true)
+  }
+
+  async function doSave() {
+    setConfirmOpen(false)
+    setSaving(true)
+    const companyName = form.company_name?.trim() || 'Company profile'
     try {
       const data = await companyProfileApi.update(form)
       setForm({ ...EMPTY_FORM, ...data })
       setEditing(false)
+      setResultDialog({
+        variant: 'success',
+        title: 'Company Profile Updated Successfully',
+        message: `"${companyName}" has been updated successfully.`,
+      })
     } catch (err) {
-      setError(extractErrorMessage(err))
+      setResultDialog({
+        variant: 'error',
+        title: 'Failed to Update Company Profile',
+        message: extractErrorMessage(err),
+      })
     } finally {
       setSaving(false)
     }
@@ -111,16 +126,12 @@ export default function CompanyProfilePage({ embedded = false }) {
 
   return (
     <div>
-      {!embedded && (
-        <header className="border-b border-brand-200 bg-brand-100">
-          <div className="px-6 py-5">
-            <h1 className="text-lg font-semibold text-slate-800">Company Profile</h1>
-            <p className="text-sm text-slate-400">Business details used on invoices and reports</p>
-          </div>
-        </header>
-      )}
-
       <main className={mainClassName}>
+        {!embedded && (
+          <div className="mb-6 flex items-center justify-between">
+            <h1 className="text-2xl font-bold text-slate-800 uppercase tracking-wide">Company Profile</h1>
+          </div>
+        )}
         {error && (
           <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">{error}</div>
         )}
@@ -361,6 +372,23 @@ export default function CompanyProfilePage({ embedded = false }) {
           </div>
         </form>
       </main>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Save Company Profile?"
+        message={`Are you sure you want to save the changes to "${form.company_name?.trim() || 'company profile'}"?`}
+        confirmLabel="Save"
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={doSave}
+        busy={saving}
+      />
+      <AlertDialog
+        open={resultDialog != null}
+        variant={resultDialog?.variant ?? 'success'}
+        title={resultDialog?.title ?? ''}
+        message={resultDialog?.message ?? ''}
+        onClose={() => setResultDialog(null)}
+      />
     </div>
   )
 }

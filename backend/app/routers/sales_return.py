@@ -39,6 +39,12 @@ def get_returnable_items(sale_id: int, db: Session = Depends(get_db)):
     results = []
     for item in sale.items:
         already_returned = _returned_quantity(db, item.id)
+        gst_percent = float(item.gst_percent)
+        gross = float(item.price) * (1 - float(item.discount_percent) / 100)
+        if item.price_inc_gst:
+            unit_taxable = gross / (1 + gst_percent / 100)
+        else:
+            unit_taxable = gross
         results.append(
             ReturnableItem(
                 sale_item_id=item.id,
@@ -48,7 +54,11 @@ def get_returnable_items(sale_id: int, db: Session = Depends(get_db)):
                 already_returned_quantity=already_returned,
                 returnable_quantity=item.quantity - already_returned,
                 price=float(item.price),
-                gst_percent=float(item.gst_percent),
+                price_inc_gst=item.price_inc_gst,
+                discount_percent=float(item.discount_percent),
+                gst_percent=gst_percent,
+                unit_taxable=round(unit_taxable, 2),
+                unit_gst=round(unit_taxable * gst_percent / 100, 2),
             )
         )
     return results
@@ -142,12 +152,18 @@ def create_sales_return(payload: SalesReturnCreate, db: Session = Depends(get_db
 
     sale_items_by_id = {item.id: item for item in sale.items}
 
+    # Aggregate quantities per sale line within this request, so a single payload that
+    # lists the same sale_item_id twice can't jointly exceed the returnable quantity.
+    requested: dict[int, int] = {}
+    for line in payload.items:
+        if line.sale_item_id not in sale_items_by_id:
+            raise HTTPException(status_code=400, detail="That product line does not belong to this sale")
+        requested[line.sale_item_id] = requested.get(line.sale_item_id, 0) + line.quantity
+
     return_items: list[SalesReturnItem] = []
     taxable_total = gst_total = grand_total = 0.0
-    for line in payload.items:
-        sale_item = sale_items_by_id.get(line.sale_item_id)
-        if not sale_item:
-            raise HTTPException(status_code=400, detail="That product line does not belong to this sale")
+    for sale_item_id, total_qty in requested.items():
+        sale_item = sale_items_by_id[sale_item_id]
 
         # Lock this sale line for the rest of the transaction so a duplicate/concurrent
         # return request against the same item can't read the same "already returned"
@@ -158,14 +174,24 @@ def create_sales_return(payload: SalesReturnCreate, db: Session = Depends(get_db
 
         already_returned = _returned_quantity(db, sale_item.id)
         returnable = sale_item.quantity - already_returned
-        if line.quantity > returnable:
+        if total_qty > returnable:
             raise HTTPException(
                 status_code=400,
-                detail=f"Cannot return {line.quantity} of {sale_item.product.name if sale_item.product else 'item'}"
+                detail=f"Cannot return {total_qty} of {sale_item.product.name if sale_item.product else 'item'}"
                 f" — only {returnable} left to return",
             )
 
-        taxable = round(line.quantity * float(sale_item.price), 2)
+        # Crediting must mirror how the invoice line was priced: apply the same
+        # price_inc_gst / discount treatment the sale used, so a return never
+        # over-credits (or under-credits) the customer.
+        qty = float(total_qty)
+        gross = qty * float(sale_item.price)
+        net = gross * (1 - float(sale_item.discount_percent) / 100)
+        if sale_item.price_inc_gst:
+            unit_taxable = net / (1 + float(sale_item.gst_percent) / 100)
+        else:
+            unit_taxable = net
+        taxable = round(unit_taxable, 2)
         gst = round(taxable * float(sale_item.gst_percent) / 100, 2)
         grand = round(taxable + gst, 2)
         taxable_total += taxable
@@ -175,7 +201,7 @@ def create_sales_return(payload: SalesReturnCreate, db: Session = Depends(get_db
         return_items.append(
             SalesReturnItem(
                 sale_item_id=sale_item.id,
-                quantity=line.quantity,
+                quantity=total_qty,
                 taxable_amount=taxable,
                 gst_amount=gst,
                 grand_amount=grand,

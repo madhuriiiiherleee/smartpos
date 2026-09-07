@@ -1,14 +1,13 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
-import { Plus, Trash2 } from 'lucide-react'
+import {useNavigate, useParams, Link} from 'react-router-dom'
+import {Plus, Trash2, ArrowLeft} from 'lucide-react'
 import { categoriesApi, customersApi, productsApi } from '../../api/master'
 import { extractErrorMessage, salesOrdersApi } from '../../api/sales'
 import { FieldLabel, FormRow, Select, TextInput } from '../../components/master/FormField'
+import AlertDialog from '../../components/shared/AlertDialog'
+import ConfirmDialog from '../../components/shared/ConfirmDialog'
 import { SALES_TYPES } from '../../lib/constants'
-
-function today() {
-  return new Date().toISOString().slice(0, 10)
-}
+import { today } from '../../lib/format'
 
 export default function SalesOrderEntryPage() {
   const { id } = useParams()
@@ -32,6 +31,8 @@ export default function SalesOrderEntryPage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const [itemError, setItemError] = useState(null)
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [resultDialog, setResultDialog] = useState(null)
 
   useEffect(() => {
     customersApi.list({ active: true }).then(setCustomers)
@@ -82,7 +83,7 @@ export default function SalesOrderEntryPage() {
     setItems((prev) => prev.filter((_, i) => i !== index))
   }
 
-  async function handleSave() {
+  function handleSave() {
     setError(null)
     if (!customerId) {
       setError('Please select a customer.')
@@ -92,7 +93,11 @@ export default function SalesOrderEntryPage() {
       setError('Add at least one product before saving.')
       return
     }
+    setConfirmOpen(true)
+  }
 
+  async function doSave() {
+    setConfirmOpen(false)
     setSaving(true)
     try {
       const payload = {
@@ -106,8 +111,20 @@ export default function SalesOrderEntryPage() {
       } else {
         await salesOrdersApi.create(payload)
       }
-      navigate('/sales/order/view')
+      setResultDialog({
+        variant: 'success',
+        title: isEdit ? 'Sales Order Updated Successfully' : 'Sales Order Saved Successfully',
+        message: isEdit
+          ? 'Your sales order changes have been saved successfully.'
+          : `Sales order ${orderNo || ''} has been saved successfully.`,
+        onCloseNav: '/sales/order/view',
+      })
     } catch (err) {
+      setResultDialog({
+        variant: 'error',
+        title: isEdit ? 'Failed to Update Sales Order' : 'Failed to Save Sales Order',
+        message: extractErrorMessage(err),
+      })
       setError(extractErrorMessage(err))
     } finally {
       setSaving(false)
@@ -277,19 +294,45 @@ export default function SalesOrderEntryPage() {
           </button>
         </div>
       </main>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title={isEdit ? 'Save Sales Order Changes?' : 'Save Sales Order?'}
+        message={`Are you sure you want to ${isEdit ? 'save the changes to this sales order' : 'save this sales order'}?`}
+        confirmLabel="Save"
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={doSave}
+        busy={saving}
+      />
+      <AlertDialog
+        open={resultDialog != null}
+        variant={resultDialog?.variant ?? 'success'}
+        title={resultDialog?.title ?? ''}
+        message={resultDialog?.message ?? ''}
+        onClose={() => {
+          setResultDialog(null)
+          if (resultDialog?.onCloseNav && resultDialog.variant === 'success') {
+            navigate(resultDialog.onCloseNav)
+          }
+        }}
+      />
     </div>
   )
 }
 
 function PageHeader({ isEdit }) {
   return (
-    <header className="border-b border-brand-200 bg-brand-100">
-      <div className="px-6 py-5">
-        <h1 className="text-lg font-semibold text-slate-800">{isEdit ? 'Edit Sales Order' : 'Sales Order Entry'}</h1>
-        <p className="text-sm text-slate-400">
-          {isEdit ? 'Update this sales order' : 'Record a new sales order for a customer'}
-        </p>
-      </div>
-    </header>
+    <div className="mb-6 flex items-center gap-3">
+      <Link
+        to="/sales/order/view"
+        aria-label="Back"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white border border-slate-200 text-slate-500 shadow-sm transition hover:bg-slate-50 hover:text-slate-800"
+      >
+        <ArrowLeft size={18} />
+      </Link>
+      <h1 className="text-2xl font-bold uppercase tracking-wide text-slate-800">
+        {isEdit ? 'EDIT SALES ORDER' : 'SALES ORDER ENTRY'}
+      </h1>
+    </div>
   )
 }

@@ -48,6 +48,7 @@ class SaleItemRead(BaseModel):
     free_quantity: int
     uom: str
     price: float
+    price_inc_gst: bool = False
     retail_price: float | None = None
     discount_percent: float
     gst_percent: float
@@ -219,7 +220,11 @@ class ReturnableItem(BaseModel):
     already_returned_quantity: int
     returnable_quantity: int
     price: float
+    price_inc_gst: bool = False
+    discount_percent: float = 0
     gst_percent: float
+    unit_taxable: float = 0
+    unit_gst: float = 0
 
 
 class SalesReturnItemCreate(BaseModel):

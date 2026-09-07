@@ -55,9 +55,9 @@ export default function Dashboard() {
       color: 'pink',
     },
     {
-      key: 'sales_order',
-      label: 'Sales Order',
-      value: summary ? formatNumber(summary.sales_order_count) : null,
+      key: 'sales_count',
+      label: 'Sales Count',
+      value: summary ? formatNumber(summary.sales_count) : null,
       icon: ClipboardList,
       color: 'violet',
     },
@@ -72,14 +72,12 @@ export default function Dashboard() {
 
   return (
     <div>
-      <header className="border-b border-brand-200 bg-brand-100">
-        <div className="px-6 py-5">
-          <h1 className="text-lg font-semibold text-slate-800">Dashboard</h1>
-          <p className="text-sm text-slate-400">Inventory Management Overview</p>
-        </div>
-      </header>
+      
 
       <main className="space-y-6 px-6 py-6">
+        <div className="mb-6 flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-slate-800 uppercase tracking-wide">Dashboard</h1>
+        </div>
         {error && (
           <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">
             {error}

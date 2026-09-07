@@ -194,6 +194,7 @@ class PurchaseItem(Base):
 
     quantity: Mapped[int] = mapped_column(Integer)
     purchase_price: Mapped[float] = mapped_column(Numeric(12, 2))
+    price_inc_gst: Mapped[bool] = mapped_column(Boolean, default=False)
     discount_percent: Mapped[float] = mapped_column(Numeric(5, 2), default=0)
     gst_percent: Mapped[float] = mapped_column(Numeric(5, 2))
     is_igst: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -285,6 +286,7 @@ class SaleItem(Base):
     free_quantity: Mapped[int] = mapped_column(Integer, default=0)
     uom: Mapped[str] = mapped_column(String(20), default="UNIT")
     price: Mapped[float] = mapped_column(Numeric(12, 2))
+    price_inc_gst: Mapped[bool] = mapped_column(Boolean, default=False)
     discount_percent: Mapped[float] = mapped_column(Numeric(5, 2), default=0)
     gst_percent: Mapped[float] = mapped_column(Numeric(5, 2))
     is_igst: Mapped[bool] = mapped_column(Boolean, default=False)

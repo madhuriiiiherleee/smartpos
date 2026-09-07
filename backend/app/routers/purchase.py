@@ -53,6 +53,7 @@ def _build_items(payload_items) -> tuple[list[PurchaseItem], float, float, float
                 product_detail_id=item.product_detail_id,
                 quantity=item.quantity,
                 purchase_price=item.purchase_price,
+                price_inc_gst=item.price_inc_gst,
                 discount_percent=item.discount_percent,
                 gst_percent=item.gst_percent,
                 is_igst=item.is_igst,
@@ -123,6 +124,7 @@ def list_purchases(
     date_from: date | None = None,
     date_to: date | None = None,
     supplier_id: int | None = None,
+    invoice_no: str | None = None,
     page: int = 1,
     page_size: int = 20,
     db: Session = Depends(get_db),
@@ -137,6 +139,10 @@ def list_purchases(
         stmt = stmt.where(Purchase.purchase_date <= date_to)
     if supplier_id:
         stmt = stmt.where(Purchase.supplier_id == supplier_id)
+    if invoice_no:
+        # Exact, case-insensitive match — used to warn about a duplicate
+        # vendor invoice number before the unique-constraint save fails.
+        stmt = stmt.where(func.lower(Purchase.invoice_no) == invoice_no.strip().lower())
 
     total = db.execute(select(func.count()).select_from(stmt.subquery())).scalar_one()
 
@@ -184,9 +190,11 @@ def update_purchase(purchase_id: int, payload: PurchaseUpdate, db: Session = Dep
 
     items, taxable_total, gst_total, grand_total = _build_items(payload.items)
     final_amount = round(grand_total - discount + tcs + payload.round_off, 2)
+    financial_year = resolve_financial_year(db, payload.invoice_date)
 
     purchase.invoice_no = payload.invoice_no.strip()
     purchase.purchase_date = payload.invoice_date
+    purchase.financial_year_id = financial_year.id
     purchase.supplier_id = payload.supplier_id
     purchase.invoice_type = invoice_type
     purchase.taxable_amount = taxable_total
