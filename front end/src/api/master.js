@@ -14,7 +14,10 @@ function makeResource(path) {
   }
 }
 
-export const categoriesApi = makeResource('categories')
+export const categoriesApi = {
+  ...makeResource('categories'),
+  remove: async (id) => (await client.delete(`/categories/${id}`)).data,
+}
 export const packingSizesApi = {
   ...makeResource('packing-sizes'),
   remove: async (id) => (await client.delete(`/packing-sizes/${id}`)).data,

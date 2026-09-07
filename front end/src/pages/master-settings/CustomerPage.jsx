@@ -8,7 +8,8 @@ import AlertDialog from '../../components/shared/AlertDialog'
 import ConfirmDialog from '../../components/shared/ConfirmDialog'
 import PageToolbar from '../../components/master/PageToolbar'
 import ToggleSwitch from '../../components/master/ToggleSwitch'
-import { FieldLabel, FormRow } from '../../components/master/FormField'
+import { FieldLabel, FormRow, ViewCard, ViewField } from '../../components/master/FormField'
+import { formatCurrency } from '../../lib/format'
 import { useDebouncedValue } from '../../lib/useDebouncedValue'
 
 const EMPTY_ROUTE = {
@@ -221,7 +222,7 @@ export default function CustomerPage() {
           { key: 'business_name', label: 'Business Name' },
           { key: 'phone', label: 'Mobile Number' },
           { key: 'gst_number', label: 'GSTIN' },
-          { key: 'address_line1', label: 'Address', className: 'max-w-xs truncate' },
+          
           { key: 'active', label: 'Status' },
         ]}
         renderCell={(row, col) => {
@@ -297,29 +298,37 @@ export default function CustomerPage() {
       )}
 
       {viewingCustomer && (
-        <Modal title="Customer Details" onClose={() => setViewingCustomer(null)} wide>
-          <div className="space-y-4">
-            <FormRow cols={2}>
+        <Modal 
+          title="Customer Details" 
+          onClose={() => setViewingCustomer(null)} 
+          size="xl"
+          footer={
+            <button
+              type="button"
+              onClick={() => setViewingCustomer(null)}
+              className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+            >
+              Close
+            </button>
+          }
+        >
+          <div className="space-y-6">
+            <ViewCard title="Business Information">
               <ViewField label="Customer Name" value={viewingCustomer.name} />
               <ViewField label="Business Name" value={viewingCustomer.business_name} />
-            </FormRow>
-            <FormRow cols={2}>
-              <ViewField label="Contact Person" value={viewingCustomer.contact_person} />
-              <ViewField label="Mobile Number" value={viewingCustomer.phone} />
-            </FormRow>
-            <FormRow cols={2}>
-              <ViewField label="Mobile Number 2" value={viewingCustomer.mobile_number_2} />
-            </FormRow>
-            <FormRow cols={2}>
-              <ViewField label="Email" value={viewingCustomer.email} />
               <ViewField label="GSTIN" value={viewingCustomer.gst_number} />
-            </FormRow>
-            <FormRow cols={2}>
-              <ViewField label="Margin (%)" value={viewingCustomer.margin} />
               <ViewField label="Status" value={viewingCustomer.active ? 'Active' : 'Inactive'} />
-            </FormRow>
-            <ViewField label="Balance" value={viewingCustomer.balance} />
-            <ViewField label="Address" value={formatAddress(viewingCustomer)} />
+              <ViewField label="Margin (%)" value={viewingCustomer.margin} />
+              <ViewField label="Balance" value={formatCurrency(viewingCustomer.balance)} />
+            </ViewCard>
+
+            <ViewCard title="Contact & Address">
+              <ViewField label="Contact Person" value={viewingCustomer.contact_person} />
+              <ViewField label="Email" value={viewingCustomer.email} />
+              <ViewField label="Mobile Number" value={viewingCustomer.phone} />
+              <ViewField label="Mobile Number 2" value={viewingCustomer.mobile_number_2} />
+              <ViewField label="Address" value={formatAddress(viewingCustomer)} />
+            </ViewCard>
           </div>
         </Modal>
       )}
@@ -360,13 +369,4 @@ export default function CustomerPage() {
 function formatAddress(a) {
   if (!a) return ''
   return [a.address_line1, a.address_line2, a.city, a.state, a.pincode].filter(Boolean).join(', ')
-}
-
-function ViewField({ label, value }) {
-  return (
-    <div>
-      <FieldLabel>{label}</FieldLabel>
-      <p className="text-sm text-slate-700">{value || <span className="text-slate-300">—</span>}</p>
-    </div>
-  )
 }

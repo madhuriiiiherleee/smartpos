@@ -444,10 +444,6 @@ export default function SalesReturnPage() {
         )}
 
         {/* ---- Return History ---- */}
-        <div className="pt-2">
-          <h2 className="text-base font-semibold text-slate-800">Return History</h2>
-          <p className="text-sm text-slate-400">All sales returns saved so far</p>
-        </div>
 
         <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-900/5">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-6">
@@ -492,8 +488,6 @@ export default function SalesReturnPage() {
                   <th className="px-5 py-3 font-medium">Invoice No.</th>
                   <th className="px-5 py-3 font-medium">Customer</th>
                   <th className="px-5 py-3 font-medium">Return Date</th>
-                  <th className="px-5 py-3 font-medium">Product(s)</th>
-                  <th className="px-5 py-3 text-right font-medium">Returned Qty</th>
                   <th className="px-5 py-3 text-right font-medium">Return Amount</th>
                   <th className="px-5 py-3 text-right font-medium">Action</th>
                 </tr>
@@ -502,7 +496,7 @@ export default function SalesReturnPage() {
                 {historyLoading &&
                   Array.from({ length: 5 }).map((_, i) => (
                     <tr key={i} className="border-b border-slate-50 last:border-0">
-                      <td className="px-5 py-3.5" colSpan={8}>
+                      <td className="px-5 py-3.5" colSpan={6}>
                         <div className="h-4 w-full max-w-xs animate-pulse rounded bg-slate-100" />
                       </td>
                     </tr>
@@ -510,7 +504,7 @@ export default function SalesReturnPage() {
 
                 {!historyLoading && historyResult.items.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="px-5 py-8 text-center text-sm text-slate-400">
+                    <td colSpan={6} className="px-5 py-8 text-center text-sm text-slate-400">
                       No sales returns found.
                     </td>
                   </tr>
@@ -523,8 +517,6 @@ export default function SalesReturnPage() {
                       <td className="px-5 py-3.5">{r.invoice_no || <span className="text-slate-300">—</span>}</td>
                       <td className="px-5 py-3.5">{r.customer_name || <span className="text-slate-300">—</span>}</td>
                       <td className="px-5 py-3.5">{formatDDMMYYYY(r.return_date)}</td>
-                      <td className="px-5 py-3.5 text-slate-500">{r.product_summary || <span className="text-slate-300">—</span>}</td>
-                      <td className="px-5 py-3.5 text-right tabular-nums">{r.quantity} pcs</td>
                       <td className="px-5 py-3.5 text-right font-semibold tabular-nums">{formatCurrency3(r.amount)}</td>
                       <td className="px-5 py-3.5 text-right">
                         <button

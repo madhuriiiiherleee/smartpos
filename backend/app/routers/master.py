@@ -108,6 +108,19 @@ def toggle_category_active(category_id: int, payload: ActiveToggle, db: Session 
     return _commit(db, obj, "Category code")
 
 
+@router.delete("/categories/{category_id}", status_code=204)
+def delete_category(category_id: int, db: Session = Depends(get_db)):
+    obj = _get_or_404(db, Category, category_id)
+    in_use = db.query(Product).filter(Product.category_id == category_id).first()
+    if in_use:
+        raise HTTPException(
+            status_code=400,
+            detail="This category is in use by existing products and cannot be deleted. Deactivate it instead.",
+        )
+    db.delete(obj)
+    db.commit()
+
+
 # ---------------- Packing Size ----------------
 
 

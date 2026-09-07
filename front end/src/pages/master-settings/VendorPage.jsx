@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Pencil } from 'lucide-react'
+import { Eye, Pencil } from 'lucide-react'
 import { extractErrorMessage, vendorsApi } from '../../api/master'
 import DataTable from '../../components/master/DataTable'
 import Modal from '../../components/master/Modal'
@@ -8,6 +8,7 @@ import ConfirmDialog from '../../components/shared/ConfirmDialog'
 import PageToolbar from '../../components/master/PageToolbar'
 import PartyForm from '../../components/master/PartyForm'
 import ToggleSwitch from '../../components/master/ToggleSwitch'
+import { ViewCard, ViewField } from '../../components/master/FormField'
 import { useDebouncedValue } from '../../lib/useDebouncedValue'
 
 const EMPTY_FORM = {
@@ -37,6 +38,7 @@ export default function VendorPage() {
   const [formError, setFormError] = useState(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [resultDialog, setResultDialog] = useState(null)
+  const [viewingVendor, setViewingVendor] = useState(null)
 
   async function load() {
     setLoading(true)
@@ -143,8 +145,8 @@ export default function VendorPage() {
           { key: 'name', label: 'Vendor Name' },
           { key: 'contact_person', label: 'Contact Person' },
           { key: 'phone', label: 'Phone' },
-          { key: 'email', label: 'Email' },
-          { key: 'gst_number', label: 'GST Number' },
+          
+          
           { key: 'active', label: 'Status' },
         ]}
         renderCell={(row, col) => {
@@ -218,6 +220,47 @@ export default function VendorPage() {
         message={resultDialog?.message ?? ''}
         onClose={() => setResultDialog(null)}
       />
+
+      {viewingVendor && (
+        <Modal 
+          title="Vendor Details" 
+          onClose={() => setViewingVendor(null)} 
+          size="xl"
+          footer={
+            <button
+              type="button"
+              onClick={() => setViewingVendor(null)}
+              className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+            >
+              Close
+            </button>
+          }
+        >
+          <div className="space-y-6">
+            <ViewCard title="Vendor Information">
+              <ViewField label="Vendor Name" value={viewingVendor.name} />
+              <ViewField label="Contact Person" value={viewingVendor.contact_person} />
+              <ViewField label="GSTIN" value={viewingVendor.gst_number} />
+              <ViewField label="Status" value={viewingVendor.active ? 'Active' : 'Inactive'} />
+            </ViewCard>
+
+            <ViewCard title="Contact & Address">
+              <ViewField label="Phone" value={viewingVendor.phone} />
+              <ViewField label="Email" value={viewingVendor.email} />
+              <ViewField 
+                label="Address" 
+                value={[
+                  viewingVendor.address_line1,
+                  viewingVendor.address_line2,
+                  viewingVendor.city,
+                  viewingVendor.state,
+                  viewingVendor.pincode
+                ].filter(Boolean).join(', ')} 
+              />
+            </ViewCard>
+          </div>
+        </Modal>
+      )}
       </main>
     </div>
   )

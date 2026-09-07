@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useState } from 'react'
-import { ChevronDown, ChevronRight, Pencil, Plus, Trash2 } from 'lucide-react'
+import { ChevronDown, ChevronRight, Eye, Pencil, Plus, Trash2 } from 'lucide-react'
 import { categoriesApi, extractErrorMessage, packingSizesApi, productDetailsApi, productsApi } from '../../api/master'
 import AddProductForm from '../../components/master/AddProductForm'
 import Modal from '../../components/master/Modal'
@@ -7,7 +7,7 @@ import AlertDialog from '../../components/shared/AlertDialog'
 import ConfirmDialog from '../../components/shared/ConfirmDialog'
 import PageToolbar from '../../components/master/PageToolbar'
 import ToggleSwitch from '../../components/master/ToggleSwitch'
-import { FieldLabel, FormRow, Select, TextArea, TextInput } from '../../components/master/FormField'
+import { FieldLabel, FormRow, Select, TextArea, TextInput, ViewCard, ViewField } from '../../components/master/FormField'
 import { formatCurrency } from '../../lib/format'
 import { useDebouncedValue } from '../../lib/useDebouncedValue'
 
@@ -57,6 +57,7 @@ export default function ProductPage() {
   const [savingProduct, setSavingProduct] = useState(false)
   const [productFormError, setProductFormError] = useState(null)
   const [listError, setListError] = useState(null)
+  const [viewingProduct, setViewingProduct] = useState(null)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [resultDialog, setResultDialog] = useState(null)
   const [pendingProductValues, setPendingProductValues] = useState(null)
@@ -374,12 +375,9 @@ export default function ProductPage() {
               <th className="px-5 py-3 font-medium">Product Code</th>
               <th className="px-5 py-3 font-medium">Product Name</th>
               <th className="px-5 py-3 font-medium">Category</th>
-              <th className="px-5 py-3 font-medium">HSN No.</th>
-              <th className="px-5 py-3 font-medium">GST</th>
-              <th className="px-5 py-3 text-right font-medium">MRP</th>
+                                          <th className="px-5 py-3 text-right font-medium">MRP</th>
               <th className="px-5 py-3 text-right font-medium">Retail Price</th>
-              <th className="px-5 py-3 text-right font-medium">Pack Sizes</th>
-              <th className="px-5 py-3 font-medium">Status</th>
+                            <th className="px-5 py-3 font-medium">Status</th>
               <th className="px-5 py-3 text-right font-medium">Actions</th>
             </tr>
           </thead>
@@ -387,7 +385,7 @@ export default function ProductPage() {
             {loading &&
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={i} className="border-b border-slate-50 last:border-0">
-                  <td colSpan={11} className="px-5 py-3.5">
+                  <td colSpan={8} className="px-5 py-3.5">
                     <div className="h-4 w-full max-w-md animate-pulse rounded bg-slate-100" />
                   </td>
                 </tr>
@@ -395,7 +393,7 @@ export default function ProductPage() {
 
             {!loading && items.length === 0 && (
               <tr>
-                <td colSpan={11} className="px-5 py-8 text-center text-sm text-slate-400">
+                <td colSpan={8} className="px-5 py-8 text-center text-sm text-slate-400">
                   No products found.
                 </td>
               </tr>
@@ -444,12 +442,19 @@ export default function ProductPage() {
                           formatCurrency(product.retail_price_amount)
                         )}
                       </td>
-                      <td className="px-5 py-3.5 text-right tabular-nums">{product.pack_size_count}</td>
-                      <td className="px-5 py-3.5">
+                                            <td className="px-5 py-3.5">
                         <ToggleSwitch checked={product.active} onChange={(v) => handleToggleActive(product, v)} />
                       </td>
                       <td className="px-5 py-3.5">
                         <div className="flex items-center justify-end gap-1">
+                          <button
+                            type="button"
+                            onClick={() => setViewingProduct(product)}
+                            className="inline-flex items-center gap-1.5 rounded-md bg-brand-50 px-2.5 py-1.5 text-xs font-medium text-brand-700 transition hover:bg-brand-100"
+                            aria-label="View"
+                          >
+                            <Eye size={14} /> View
+                          </button>
                           <button
                             type="button"
                             onClick={() => openEditProduct(product)}
@@ -471,7 +476,7 @@ export default function ProductPage() {
                     </tr>
                     {isExpanded && (
                       <tr key={`${product.id}-details`} className="border-b border-slate-50 bg-slate-50/50 last:border-0">
-                        <td colSpan={11} className="px-6 py-4">
+                        <td colSpan={8} className="px-6 py-4">
                           <div className="flex items-center justify-between pb-3">
                             <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                               Pack Sizes for {product.name}
@@ -830,6 +835,50 @@ export default function ProductPage() {
         message={resultDialog?.message ?? ''}
         onClose={() => setResultDialog(null)}
       />
+
+      {viewingProduct && (
+        <Modal 
+          title="Product Details" 
+          onClose={() => setViewingProduct(null)} 
+          size="xl"
+          footer={
+            <button
+              type="button"
+              onClick={() => setViewingProduct(null)}
+              className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+            >
+              Close
+            </button>
+          }
+        >
+          <div className="space-y-6">
+            <ViewCard title="General Information">
+              <ViewField label="Product Code" value={viewingProduct.code} />
+              <ViewField label="Product Name" value={viewingProduct.name} />
+              <ViewField label="Category" value={viewingProduct.category_name} />
+              <ViewField label="Status" value={viewingProduct.active ? 'Active' : 'Inactive'} />
+            </ViewCard>
+
+            <ViewCard title="Pricing & Tax">
+              <ViewField label="HSN Code" value={viewingProduct.hsn_code} />
+              <ViewField 
+                label="GST" 
+                value={
+                  viewingProduct.cgst_percent == null && viewingProduct.sgst_percent == null 
+                  ? '—' 
+                  : `${(viewingProduct.cgst_percent || 0) + (viewingProduct.sgst_percent || 0)}%`
+                } 
+              />
+              <ViewField label="MRP" value={viewingProduct.mrp_amount ? formatCurrency(viewingProduct.mrp_amount) : '—'} />
+              <ViewField label="Retail Price" value={viewingProduct.retail_price_amount ? formatCurrency(viewingProduct.retail_price_amount) : '—'} />
+            </ViewCard>
+
+            <ViewCard title="Description">
+              <ViewField label="Description" value={viewingProduct.description} />
+            </ViewCard>
+          </div>
+        </Modal>
+      )}
       </main>
     </div>
   )

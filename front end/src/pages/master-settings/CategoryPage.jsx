@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Pencil } from 'lucide-react'
+import { Pencil, Trash2 } from 'lucide-react'
 import { categoriesApi, extractErrorMessage } from '../../api/master'
 import DataTable from '../../components/master/DataTable'
 import Modal from '../../components/master/Modal'
@@ -24,6 +24,7 @@ export default function CategoryPage() {
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState(null)
   const [resultDialog, setResultDialog] = useState(null)
 
   async function load() {
@@ -97,6 +98,31 @@ export default function CategoryPage() {
     }
   }
 
+  async function doDelete() {
+    if (!deleteTarget) return
+    const id = deleteTarget.id
+    const name = deleteTarget.name
+    setDeleteTarget(null)
+    setLoading(true)
+    try {
+      await categoriesApi.remove(id)
+      await load()
+      setResultDialog({
+        variant: 'success',
+        title: 'Category Deleted',
+        message: `"${name}" has been deleted successfully.`,
+      })
+    } catch (err) {
+      setResultDialog({
+        variant: 'error',
+        title: 'Failed to Delete Category',
+        message: extractErrorMessage(err) || 'This category may be in use by products.',
+      })
+      setLoading(false)
+    }
+  }
+
+
   return (
     <div>
       
@@ -127,14 +153,24 @@ export default function CategoryPage() {
           return row[col.key]
         }}
         actions={(row) => (
-          <button
-            type="button"
-            onClick={() => openEdit(row)}
-            className="inline-flex items-center gap-1.5 rounded-md bg-slate-100 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-200"
-            aria-label={`Edit ${row.name}`}
-          >
-            <Pencil size={14} /> Edit
-          </button>
+          <div className="flex items-center justify-end gap-1">
+            <button
+              type="button"
+              onClick={() => openEdit(row)}
+              className="inline-flex items-center gap-1.5 rounded-md bg-slate-100 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-200"
+              aria-label={`Edit ${row.name}`}
+            >
+              <Pencil size={14} /> Edit
+            </button>
+            <button
+              type="button"
+              onClick={() => setDeleteTarget(row)}
+              className="inline-flex items-center gap-1.5 rounded-md bg-rose-50 px-2.5 py-1.5 text-xs font-medium text-rose-700 transition hover:bg-rose-100"
+              aria-label={`Delete ${row.name}`}
+            >
+              <Trash2 size={14} /> Delete
+            </button>
+          </div>
         )}
       />
 
@@ -207,6 +243,16 @@ export default function CategoryPage() {
         title={resultDialog?.title ?? ''}
         message={resultDialog?.message ?? ''}
         onClose={() => setResultDialog(null)}
+      />
+      <ConfirmDialog
+        open={deleteTarget != null}
+        title="Delete Category?"
+        message={`Are you sure you want to delete "${deleteTarget?.name}"? This action cannot be undone.`}
+        confirmLabel="Delete"
+        confirmVariant="danger"
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={doDelete}
+        busy={loading}
       />
       </main>
     </div>
