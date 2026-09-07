@@ -370,7 +370,7 @@ export default function ProductPage() {
       <div className="overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-slate-900/5">
         <table className="w-full border-collapse text-left text-sm">
           <thead>
-            <tr className="bg-brand-900 text-xs uppercase tracking-wide text-white">
+            <tr className="bg-brand-600 text-xs uppercase tracking-wide text-white">
               <th className="w-10 px-3 py-3" />
               <th className="px-5 py-3 font-medium">Product Code</th>
               <th className="px-5 py-3 font-medium">Product Name</th>
@@ -505,7 +505,7 @@ export default function ProductPage() {
                             <div className="overflow-x-auto rounded-xl bg-white ring-1 ring-slate-900/5">
                               <table className="w-full border-collapse text-left text-sm">
                                 <thead>
-                                  <tr className="bg-brand-900 text-xs uppercase tracking-wide text-white">
+                                  <tr className="bg-brand-600 text-xs uppercase tracking-wide text-white">
                                     <th className="px-4 py-2 font-medium">Pack Code</th>
                                     <th className="px-4 py-2 font-medium">Packing Size</th>
                                     <th className="px-4 py-2 text-right font-medium">Qty / Box</th>

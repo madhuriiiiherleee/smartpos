@@ -238,7 +238,7 @@ export default function SalesReturnPage() {
             <button
               type="button"
               onClick={() => setNewReturnOpen(true)}
-              className="flex items-center justify-center gap-1.5 rounded-lg bg-[#103252] px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[#0c263e]"
+              className="flex items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-brand-700"
             >
               <Plus size={16} strokeWidth={2.5} />
               New Return
@@ -483,7 +483,7 @@ export default function SalesReturnPage() {
           <div className="overflow-x-auto">
             <table className="w-full border-collapse text-left text-sm">
               <thead>
-                <tr className="bg-[#103252] text-xs uppercase tracking-wide text-white">
+                <tr className="bg-brand-600 text-xs uppercase tracking-wide text-white">
                   <th className="px-5 py-3 font-medium">Return No.</th>
                   <th className="px-5 py-3 font-medium">Invoice No.</th>
                   <th className="px-5 py-3 font-medium">Customer</th>
@@ -601,7 +601,7 @@ export default function SalesReturnPage() {
               <div className="mt-4 overflow-hidden rounded-xl border border-slate-100">
                 <table className="w-full border-collapse text-left text-sm">
                   <thead>
-                    <tr className="bg-[#103252] text-xs uppercase tracking-wide text-white">
+                    <tr className="bg-brand-600 text-xs uppercase tracking-wide text-white">
                       <th className="px-4 py-2.5 font-medium">Product</th>
                       <th className="px-4 py-2.5 text-right font-medium">Qty</th>
                       <th className="px-4 py-2.5 text-right font-medium">Taxable</th>

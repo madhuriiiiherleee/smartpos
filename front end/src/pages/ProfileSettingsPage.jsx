@@ -189,7 +189,7 @@ function UsersTab() {
         <div className="overflow-hidden rounded-xl border border-slate-200">
           <table className="w-full border-collapse text-left text-sm">
             <thead>
-              <tr className="bg-[#103252] text-xs uppercase tracking-wide text-white">
+              <tr className="bg-brand-600 text-xs uppercase tracking-wide text-white">
                 <th className="px-4 py-2.5 font-medium">SL #</th>
                 <th className="px-4 py-2.5 font-medium">Username</th>
               </tr>

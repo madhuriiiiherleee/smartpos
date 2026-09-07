@@ -159,7 +159,7 @@ export default function GstReportPage({ reportKey }) {
           <div className="overflow-x-auto">
           <table className="w-full border-collapse text-left text-sm">
             <thead>
-              <tr className="bg-[#103252] text-xs uppercase tracking-wide text-white">
+              <tr className="bg-brand-600 text-xs uppercase tracking-wide text-white">
                 <th className="px-4 py-3 font-medium">SL #</th>
                 {columns.map((col) => (
                   <th key={col.key} className="px-4 py-3 text-right font-medium first:text-left">

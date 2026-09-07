@@ -143,7 +143,7 @@ export default function DeliveryListPage() {
           <div className="overflow-x-auto">
           <table className="w-full border-collapse text-left text-sm">
             <thead>
-              <tr className="bg-[#103252] text-xs uppercase tracking-wide text-white">
+              <tr className="bg-brand-600 text-xs uppercase tracking-wide text-white">
                 <th className="px-5 py-3 font-medium print:hidden">
                   <input
                     type="checkbox"

@@ -64,7 +64,7 @@ export default function ViewSalesOrderPage() {
           <h1 className="text-2xl font-bold uppercase tracking-wide text-slate-800">View Sales Order</h1>
           <Link
             to="/sales/order/entry"
-            className="flex items-center justify-center gap-1.5 rounded-lg bg-[#103252] px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[#0c263e]"
+            className="flex items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-brand-700"
           >
             <Plus size={16} strokeWidth={2.5} />
             New Order
@@ -120,7 +120,7 @@ export default function ViewSalesOrderPage() {
           <div className="overflow-x-auto">
           <table className="w-full border-collapse text-left text-sm">
             <thead>
-              <tr className="bg-[#103252] text-xs uppercase tracking-wide text-white">
+              <tr className="bg-brand-600 text-xs uppercase tracking-wide text-white">
                 <th className="px-5 py-3 font-medium">Order #</th>
                 <th className="px-5 py-3 font-medium">Customer Name</th>
                 <th className="px-5 py-3 font-medium">Sales Type</th>

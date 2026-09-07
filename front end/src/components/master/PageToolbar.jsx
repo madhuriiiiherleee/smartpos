@@ -21,7 +21,7 @@ export default function PageToolbar({
             <button
               type="button"
               onClick={onAdd}
-              className="flex items-center justify-center gap-1.5 rounded-lg bg-[#103252] px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[#0c263e]"
+              className="flex items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-brand-700"
             >
               <Plus size={16} strokeWidth={2.5} />
               {addLabel}

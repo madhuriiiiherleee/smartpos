@@ -88,7 +88,7 @@ export default function ManagePurchasePage() {
           <h1 className="text-2xl font-bold uppercase tracking-wide text-slate-800">Manage Purchase</h1>
           <Link
             to="/purchase/entry"
-            className="flex items-center justify-center gap-1.5 rounded-lg bg-[#103252] px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-[#0c263e]"
+            className="flex items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-brand-700"
           >
             <Plus size={16} strokeWidth={2.5} />
             New Purchase
@@ -123,7 +123,7 @@ export default function ManagePurchasePage() {
           <div className="overflow-x-auto">
           <table className="w-full border-collapse text-left text-sm">
             <thead>
-              <tr className="bg-[#103252] text-xs uppercase tracking-wide text-white">
+              <tr className="bg-brand-600 text-xs uppercase tracking-wide text-white">
                 <th className="px-5 py-3 font-medium">Invoice #</th>
                 <th className="px-5 py-3 font-medium">Invoice Date</th>
                 <th className="px-5 py-3 font-medium">Vendor Name</th>

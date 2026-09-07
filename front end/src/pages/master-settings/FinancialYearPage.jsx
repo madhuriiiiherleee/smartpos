@@ -109,7 +109,7 @@ export default function FinancialYearPage() {
                   type="checkbox"
                   checked={makeActive}
                   onChange={(e) => setMakeActive(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-300 accent-[#103252] focus:ring-[#103252]"
+                  className="h-4 w-4 rounded border-slate-300 accent-brand-600 focus:ring-brand-600"
                 />
                 Make it current Financial Year
               </label>
@@ -123,7 +123,7 @@ export default function FinancialYearPage() {
               <button
                 type="submit"
                 disabled={saving}
-                className="rounded-lg bg-[#103252] px-4 py-2 text-sm font-medium text-white transition hover:bg-[#0c263e] disabled:opacity-60"
+                className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-700 disabled:opacity-60"
               >
                 {saving ? 'Saving...' : 'Save'}
               </button>
@@ -157,7 +157,7 @@ export default function FinancialYearPage() {
                   <button
                     type="button"
                     onClick={() => handleActivate(row.id)}
-                    className="rounded-lg px-3 py-1.5 text-xs font-medium text-[#103252] transition hover:bg-slate-50"
+                    className="rounded-lg px-3 py-1.5 text-xs font-medium text-brand-700 transition hover:bg-slate-50"
                   >
                     Make Active
                   </button>
