@@ -134,7 +134,21 @@ class SaleRead(BaseModel):
 
 class SalesOrderItemCreate(BaseModel):
     product_id: int
+    product_detail_id: int | None = None
     quantity: int = Field(gt=0)
+    free_quantity: int = 0
+    uom: str = "UNIT"
+    price: float
+    price_inc_gst: bool = False
+    discount_percent: float = Field(default=0, ge=0)
+    gst_percent: float = Field(default=0, ge=0)
+    is_igst: bool = False
+    cgst_amount: float = 0
+    sgst_amount: float = 0
+    igst_amount: float = 0
+    taxable_amount: float
+    gst_amount: float
+    grand_amount: float
 
 
 class SalesOrderItemRead(BaseModel):
@@ -150,6 +164,7 @@ class SalesOrderCreate(BaseModel):
     order_date: date
     customer_id: int
     sales_type: str = "Cash"
+    discount: float = Field(default=0, ge=0)
     items: list[SalesOrderItemCreate] = Field(min_length=1)
 
 

@@ -73,8 +73,8 @@ export default function PurchaseSalesChart({ data, loading }) {
                 iconType="circle"
                 wrapperStyle={{ fontSize: 13, color: '#475569', paddingBottom: 16 }}
               />
-              <Bar dataKey="sales" name="Sales" fill="#1591c6" radius={[6, 6, 0, 0]} maxBarSize={20} />
-              <Bar dataKey="purchase" name="Purchase" fill="#ec4899" radius={[6, 6, 0, 0]} maxBarSize={20} />
+              <Bar dataKey="sales" name="Sales" fill="#0d5b7c" radius={[6, 6, 0, 0]} maxBarSize={20} />
+              <Bar dataKey="purchase" name="Purchase" fill="#1591c6" radius={[6, 6, 0, 0]} maxBarSize={20} />
             </BarChart>
           </ResponsiveContainer>
         )}

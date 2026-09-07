@@ -30,13 +30,36 @@ def peek_next_order_number(order_date: date | None = None, db: Session = Depends
 
 
 def _build_order_items(payload_items) -> list[SalesOrderItem]:
-    return [SalesOrderItem(product_id=i.product_id, quantity=i.quantity) for i in payload_items]
+    return [
+        SalesOrderItem(
+            product_id=i.product_id,
+            product_detail_id=i.product_detail_id,
+            quantity=i.quantity,
+            free_quantity=i.free_quantity,
+            uom=i.uom,
+            price=i.price,
+            price_inc_gst=i.price_inc_gst,
+            discount_percent=i.discount_percent,
+            gst_percent=i.gst_percent,
+            is_igst=i.is_igst,
+            cgst_amount=i.cgst_amount,
+            sgst_amount=i.sgst_amount,
+            igst_amount=i.igst_amount,
+            taxable_amount=i.taxable_amount,
+            gst_amount=i.gst_amount,
+            grand_amount=i.grand_amount,
+        )
+        for i in payload_items
+    ]
 
 
 def _order_item_read(item: SalesOrderItem) -> SalesOrderItemRead:
     data = SalesOrderItemRead.model_validate(item)
     data.product_code = item.product.code if item.product else None
     data.product_name = item.product.name if item.product else None
+    data.hsn_code = item.product.hsn_code if item.product else None
+    if item.product_detail and item.product_detail.packing_size_ref:
+        data.packing_size = item.product_detail.packing_size_ref.label
     return data
 
 
@@ -52,13 +75,22 @@ def create_sales_order(payload: SalesOrderCreate, db: Session = Depends(get_db))
     financial_year = resolve_financial_year(db, payload.order_date)
     order_no = reserve_next_number(db, financial_year, SERIES_KEY, PREFIX)
 
+    items = _build_order_items(payload.items)
+    taxable = sum(i.taxable_amount for i in items)
+    gst = sum(i.gst_amount for i in items)
+    amount = sum(i.grand_amount for i in items) - payload.discount
+    
     order = SalesOrder(
         order_no=order_no,
         order_date=payload.order_date,
         customer_id=payload.customer_id,
         sales_type=payload.sales_type,
         financial_year_id=financial_year.id,
-        items=_build_order_items(payload.items),
+        discount=payload.discount,
+        taxable_amount=taxable,
+        gst_amount=gst,
+        amount=amount,
+        items=items,
     )
     db.add(order)
     db.commit()
@@ -126,7 +158,12 @@ def update_sales_order(order_id: int, payload: SalesOrderUpdate, db: Session = D
     order.order_date = payload.order_date
     order.customer_id = payload.customer_id
     order.sales_type = payload.sales_type
+    order.discount = payload.discount
     order.items = _build_order_items(payload.items)
+    
+    order.taxable_amount = sum(i.taxable_amount for i in order.items)
+    order.gst_amount = sum(i.gst_amount for i in order.items)
+    order.amount = sum(i.grand_amount for i in order.items) - order.discount
 
     db.commit()
     db.refresh(order)

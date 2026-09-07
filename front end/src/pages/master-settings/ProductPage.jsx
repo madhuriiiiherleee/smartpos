@@ -370,14 +370,16 @@ export default function ProductPage() {
       <div className="overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-slate-900/5">
         <table className="w-full border-collapse text-left text-sm">
           <thead>
-            <tr className="bg-[#103252] text-xs uppercase tracking-wide text-white">
+            <tr className="bg-brand-900 text-xs uppercase tracking-wide text-white">
               <th className="w-10 px-3 py-3" />
               <th className="px-5 py-3 font-medium">Product Code</th>
               <th className="px-5 py-3 font-medium">Product Name</th>
               <th className="px-5 py-3 font-medium">Category</th>
-                                          <th className="px-5 py-3 text-right font-medium">MRP</th>
+              <th className="px-5 py-3 font-medium">HSN Code</th>
+              <th className="px-5 py-3 font-medium">GST %</th>
+              <th className="px-5 py-3 text-right font-medium">MRP</th>
               <th className="px-5 py-3 text-right font-medium">Retail Price</th>
-                            <th className="px-5 py-3 font-medium">Status</th>
+              <th className="px-5 py-3 font-medium">Status</th>
               <th className="px-5 py-3 text-right font-medium">Actions</th>
             </tr>
           </thead>
@@ -385,7 +387,7 @@ export default function ProductPage() {
             {loading &&
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={i} className="border-b border-slate-50 last:border-0">
-                  <td colSpan={8} className="px-5 py-3.5">
+                  <td colSpan={10} className="px-5 py-3.5">
                     <div className="h-4 w-full max-w-md animate-pulse rounded bg-slate-100" />
                   </td>
                 </tr>
@@ -393,7 +395,7 @@ export default function ProductPage() {
 
             {!loading && items.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-5 py-8 text-center text-sm text-slate-400">
+                <td colSpan={10} className="px-5 py-8 text-center text-sm text-slate-400">
                   No products found.
                 </td>
               </tr>
@@ -476,7 +478,7 @@ export default function ProductPage() {
                     </tr>
                     {isExpanded && (
                       <tr key={`${product.id}-details`} className="border-b border-slate-50 bg-slate-50/50 last:border-0">
-                        <td colSpan={8} className="px-6 py-4">
+                        <td colSpan={10} className="px-6 py-4">
                           <div className="flex items-center justify-between pb-3">
                             <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                               Pack Sizes for {product.name}
@@ -503,7 +505,7 @@ export default function ProductPage() {
                             <div className="overflow-x-auto rounded-xl bg-white ring-1 ring-slate-900/5">
                               <table className="w-full border-collapse text-left text-sm">
                                 <thead>
-                                  <tr className="bg-[#103252] text-xs uppercase tracking-wide text-white">
+                                  <tr className="bg-brand-900 text-xs uppercase tracking-wide text-white">
                                     <th className="px-4 py-2 font-medium">Pack Code</th>
                                     <th className="px-4 py-2 font-medium">Packing Size</th>
                                     <th className="px-4 py-2 text-right font-medium">Qty / Box</th>

@@ -5,6 +5,7 @@ import { customersApi } from '../../api/master'
 import { salesOrdersApi } from '../../api/sales'
 import { FieldLabel, Select, TextInput } from '../../components/master/FormField'
 import { SALES_TYPES } from '../../lib/constants'
+import { formatCurrency } from '../../lib/format'
 
 const PAGE_SIZE = 10
 
@@ -124,6 +125,7 @@ export default function ViewSalesOrderPage() {
                 <th className="px-5 py-3 font-medium">Customer Name</th>
                 <th className="px-5 py-3 font-medium">Sales Type</th>
                 <th className="px-5 py-3 font-medium">Order Date</th>
+                <th className="px-5 py-3 text-right font-medium">Amount</th>
                 <th className="px-5 py-3 text-right font-medium">Action</th>
               </tr>
             </thead>
@@ -131,7 +133,7 @@ export default function ViewSalesOrderPage() {
               {loading &&
                 Array.from({ length: 5 }).map((_, i) => (
                   <tr key={i} className="border-b border-slate-50 last:border-0">
-                    <td className="px-5 py-3.5" colSpan={5}>
+                    <td className="px-5 py-3.5" colSpan={6}>
                       <div className="h-4 w-full max-w-xs animate-pulse rounded bg-slate-100" />
                     </td>
                   </tr>
@@ -139,7 +141,7 @@ export default function ViewSalesOrderPage() {
 
               {!loading && result.items.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-5 py-8 text-center text-sm text-slate-400">
+                  <td colSpan={6} className="px-5 py-8 text-center text-sm text-slate-400">
                     No sales orders found.
                   </td>
                 </tr>
@@ -152,6 +154,7 @@ export default function ViewSalesOrderPage() {
                     <td className="px-5 py-3.5">{o.customer_name || <span className="text-slate-300">—</span>}</td>
                     <td className="px-5 py-3.5">{o.sales_type || <span className="text-slate-300">—</span>}</td>
                     <td className="px-5 py-3.5">{o.order_date}</td>
+                    <td className="px-5 py-3.5 text-right font-semibold tabular-nums">{formatCurrency(o.amount || 0)}</td>
                     <td className="px-5 py-3.5 text-right">
                       <Link
                         to={`/sales/order/entry/${o.id}`}

@@ -52,21 +52,21 @@ export default function Dashboard() {
       label: 'Purchase Register',
       value: summary ? formatCurrency(summary.purchase_register) : null,
       icon: ShoppingCart,
-      color: 'pink',
+      color: 'brand-500',
     },
     {
       key: 'sales_count',
       label: 'Sales Count',
       value: summary ? formatNumber(summary.sales_count) : null,
       icon: ClipboardList,
-      color: 'violet',
+      color: 'brand-600',
     },
     {
       key: 'sales_register',
       label: 'Sales Register',
       value: summary ? formatCurrency(summary.sales_register) : null,
       icon: Receipt,
-      color: 'emerald',
+      color: 'brand-700',
     },
   ]
 

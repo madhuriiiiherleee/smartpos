@@ -1,11 +1,10 @@
 const THEMES = {
-  pink: { icon: 'bg-pink-500' },
-  amber: { icon: 'bg-amber-500' },
-  emerald: { icon: 'bg-emerald-500' },
-  violet: { icon: 'bg-violet-500' },
+  'brand-500': { icon: 'bg-brand-500' },
+  'brand-600': { icon: 'bg-brand-600' },
+  'brand-700': { icon: 'bg-brand-700' },
 }
 
-export default function SummaryCard({ label, value, icon: Icon, color = 'pink', loading }) {
+export default function SummaryCard({ label, value, icon: Icon, color = 'brand-500', loading }) {
   const theme = THEMES[color]
 
   return (

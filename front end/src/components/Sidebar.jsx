@@ -56,11 +56,11 @@ function SimpleLink({ label, icon: Icon, to, end, matchPrefix, location, onNavig
       onClick={onNavigate}
       className={`flex w-full items-center gap-3 rounded-lg border-l-[3px] px-3 py-2.5 text-sm font-medium transition ${
         isActive
-          ? 'border-brand-400 bg-white text-brand-700 shadow-sm'
+          ? 'border-brand-500 bg-white text-brand-800 shadow-sm'
           : 'border-transparent text-brand-50/80 hover:bg-white/10 hover:text-white'
       }`}
     >
-      <Icon size={18} strokeWidth={2} className={isActive ? 'text-brand-500' : ''} />
+      <Icon size={18} strokeWidth={2} className={isActive ? 'text-brand-600' : ''} />
       {label}
     </NavLink>
   )
@@ -97,10 +97,10 @@ function ExpandableGroup({ label, icon: Icon, matchPrefix, children, location, o
                 to={child.to}
                 onClick={onNavigate}
                 className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition ${
-                  isActive ? 'bg-white font-medium text-brand-700 shadow-sm' : 'text-brand-50/70 hover:bg-white/10 hover:text-white'
+                  isActive ? 'bg-white font-medium text-brand-800 shadow-sm' : 'text-brand-50/70 hover:bg-white/10 hover:text-white'
                 }`}
               >
-                <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${isActive ? 'bg-brand-400' : 'bg-transparent'}`} />
+                <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${isActive ? 'bg-brand-500' : 'bg-transparent'}`} />
                 {child.label}
               </NavLink>
             )
@@ -125,11 +125,11 @@ export default function Sidebar({ open, onClose }) {
       )}
 
       <aside
-        className={`fixed inset-y-0 left-0 z-30 flex w-64 flex-col overflow-y-auto bg-[#103252] shadow-xl transition-transform duration-200 ease-in-out print:hidden ${
+        className={`fixed inset-y-0 left-0 z-30 flex w-64 flex-col overflow-y-auto bg-brand-900 shadow-xl transition-transform duration-200 ease-in-out print:hidden ${
           open ? 'translate-x-0' : '-translate-x-full'
         } lg:translate-x-0`}
       >
-        <div className="flex h-16 shrink-0 items-center border-b border-brand-300 bg-white px-4">
+        <div className="flex h-16 shrink-0 items-center border-b border-brand-200 bg-white px-4">
           <img src={logo} alt="smartPOS" className="h-8 w-auto" />
         </div>
 

@@ -216,7 +216,10 @@ class SalesOrder(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     order_no: Mapped[str] = mapped_column(String(50))
     order_date: Mapped[date] = mapped_column(Date)
+    taxable_amount: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
+    gst_amount: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
     amount: Mapped[float | None] = mapped_column(Numeric(12, 2), nullable=True)
+    discount: Mapped[float] = mapped_column(Numeric(12, 2), default=0)
 
     customer_id: Mapped[int | None] = mapped_column(ForeignKey("customers.id"), nullable=True)
     sales_type: Mapped[str | None] = mapped_column(String(20), nullable=True)
@@ -233,10 +236,26 @@ class SalesOrderItem(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     sales_order_id: Mapped[int] = mapped_column(ForeignKey("sales_orders.id"))
     product_id: Mapped[int] = mapped_column(ForeignKey("products.id"))
+    product_detail_id: Mapped[int | None] = mapped_column(ForeignKey("product_details.id"), nullable=True)
+
     quantity: Mapped[int] = mapped_column(Integer)
+    free_quantity: Mapped[int] = mapped_column(Integer, default=0)
+    uom: Mapped[str] = mapped_column(String(20), default="UNIT")
+    price: Mapped[float] = mapped_column(Numeric(12, 2), default=0)
+    price_inc_gst: Mapped[bool] = mapped_column(Boolean, default=False)
+    discount_percent: Mapped[float] = mapped_column(Numeric(5, 2), default=0)
+    gst_percent: Mapped[float] = mapped_column(Numeric(5, 2), default=0)
+    is_igst: Mapped[bool] = mapped_column(Boolean, default=False)
+    cgst_amount: Mapped[float] = mapped_column(Numeric(12, 2), default=0)
+    sgst_amount: Mapped[float] = mapped_column(Numeric(12, 2), default=0)
+    igst_amount: Mapped[float] = mapped_column(Numeric(12, 2), default=0)
+    taxable_amount: Mapped[float] = mapped_column(Numeric(12, 2), default=0)
+    gst_amount: Mapped[float] = mapped_column(Numeric(12, 2), default=0)
+    grand_amount: Mapped[float] = mapped_column(Numeric(12, 2), default=0)
 
     sales_order: Mapped["SalesOrder"] = relationship(back_populates="items")
     product: Mapped["Product"] = relationship()
+    product_detail: Mapped["ProductDetail | None"] = relationship()
 
 
 SELLING_PRICE_TYPES = ("Wholesale", "Retail", "MRP")

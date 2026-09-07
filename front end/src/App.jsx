@@ -33,10 +33,10 @@ function AppShell() {
   const { user } = useAuth()
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-brand-50">
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
-      <div className="flex h-16 items-center gap-3 border-b border-brand-300 bg-white px-4 shadow-sm lg:pl-64 print:hidden">
+      <div className="flex h-16 items-center gap-3 border-b border-brand-200 bg-white px-4 shadow-sm lg:pl-64 print:hidden">
         <button
           type="button"
           onClick={() => setSidebarOpen(true)}
