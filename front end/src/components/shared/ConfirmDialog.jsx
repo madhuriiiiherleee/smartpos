@@ -15,7 +15,7 @@ export default function ConfirmDialog({
   const isDanger = confirmLabel.toLowerCase().includes('delete')
 
   return (
-    <div className="dialog-overlay fixed inset-0 z-50 flex items-center justify-center bg-slate-900/65 px-4 backdrop-blur-sm">
+    <div className="dialog-overlay fixed inset-0 z-50 flex items-center justify-center bg-slate-900/65 px-4">
       <div className="dialog-card w-full max-w-sm rounded-2xl bg-white p-6 text-center shadow-xl">
         <div
           className={`mx-auto flex h-12 w-12 items-center justify-center rounded-full ${
