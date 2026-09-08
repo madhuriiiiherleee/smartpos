@@ -1,4 +1,4 @@
-import { formatBoxBreakdown, formatCurrency } from '../../lib/format'
+import { formatBoxBreakdown, formatCurrencyPrecise } from '../../lib/format'
 
 export default function InvoiceBody({
   doc,
@@ -13,8 +13,6 @@ export default function InvoiceBody({
   priceKey = 'price',
   showRetailPrice = false,
   showDiscount = false,
-  returnedByItem = null,
-  hasReturns = false,
   extraTotalsRows = [],
   declaration = null,
 }) {
@@ -41,7 +39,11 @@ export default function InvoiceBody({
           <p className="font-semibold text-slate-700">{partyLabel}</p>
           <p className="text-slate-600">{partyName}</p>
           {partyAttn && <p className="text-slate-500">{partyAttn}</p>}
-          {formatShippingAddress(doc) && <p className="text-slate-500">{formatShippingAddress(doc)}</p>}
+          {shippingAddressLines(doc).map((line, i) => (
+            <p key={i} className="text-slate-500">
+              {line}
+            </p>
+          ))}
         </div>
         <div className="sm:text-right">
           {rightLines.map((line) => (
@@ -61,7 +63,6 @@ export default function InvoiceBody({
               <th className="py-2 font-medium">Product</th>
               <th className="py-2 font-medium">HSN</th>
               <th className="py-2 text-right font-medium">Qty</th>
-              {hasReturns && <th className="py-2 text-right font-medium text-rose-400 print:hidden">Returned</th>}
               {showRetailPrice && <th className="py-2 text-right font-medium">Retail Price</th>}
               <th className="py-2 text-right font-medium">Price</th>
               {showDiscount && <th className="py-2 text-right font-medium">Discount</th>}
@@ -87,32 +88,27 @@ export default function InvoiceBody({
                     </div>
                   )}
                 </td>
-                {hasReturns && (
-                  <td className="py-2 text-right tabular-nums text-rose-500 print:hidden">
-                    {returnedByItem[item.id] > 0 ? returnedByItem[item.id] : <span className="text-slate-300">—</span>}
-                  </td>
-                )}
                 {showRetailPrice && (
                   <td className="py-2 text-right tabular-nums">
                     {item.retail_price == null ? (
                       <span className="text-slate-300">—</span>
                     ) : (
-                      formatCurrency(item.retail_price)
+                      formatCurrencyPrecise(item.retail_price)
                     )}
                   </td>
                 )}
-                <td className="py-2 text-right tabular-nums">{formatCurrency(item[priceKey])}</td>
+                <td className="py-2 text-right tabular-nums">{formatCurrencyPrecise(item[priceKey])}</td>
                 {showDiscount && (
                   <td className="py-2 text-right tabular-nums text-slate-500">
                     {item.discount_percent > 0 ? `${item.discount_percent}%` : '—'}
                   </td>
                 )}
-                <td className="py-2 text-right tabular-nums">{formatCurrency(item.taxable_amount)}</td>
+                <td className="py-2 text-right tabular-nums">{formatCurrencyPrecise(item.taxable_amount)}</td>
                 <td className="py-2 text-right tabular-nums text-slate-500">
                   {item.is_igst ? `IGST ${item.gst_percent}%` : `${item.gst_percent}%`} (
-                  {formatCurrency(item.gst_amount)})
+                  {formatCurrencyPrecise(item.gst_amount)})
                 </td>
-                <td className="py-2 text-right font-semibold tabular-nums">{formatCurrency(item.grand_amount)}</td>
+                <td className="py-2 text-right font-semibold tabular-nums">{formatCurrencyPrecise(item.grand_amount)}</td>
               </tr>
             ))}
           </tbody>
@@ -123,16 +119,16 @@ export default function InvoiceBody({
         <div className="w-full space-y-1 text-xs sm:w-64">
           <div className="flex justify-between">
             <span className="text-slate-500">Taxable Amount</span>
-            <span className="tabular-nums text-slate-700">{formatCurrency(doc.taxable_amount)}</span>
+            <span className="tabular-nums text-slate-700">{formatCurrencyPrecise(doc.taxable_amount)}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-slate-500">GST Amount</span>
-            <span className="tabular-nums text-slate-700">{formatCurrency(doc.gst_amount)}</span>
+            <span className="tabular-nums text-slate-700">{formatCurrencyPrecise(doc.gst_amount)}</span>
           </div>
           {doc.discount > 0 && (
             <div className="flex justify-between">
               <span className="text-slate-500">Discount</span>
-              <span className="tabular-nums text-slate-700">- {formatCurrency(doc.discount)}</span>
+              <span className="tabular-nums text-slate-700">- {formatCurrencyPrecise(doc.discount)}</span>
             </div>
           )}
           {extraTotalsRows
@@ -140,12 +136,12 @@ export default function InvoiceBody({
             .map((row) => (
               <div key={row.label} className="flex justify-between">
                 <span className="text-slate-500">{row.label}</span>
-                <span className="tabular-nums text-slate-700">{formatCurrency(row.value)}</span>
+                <span className="tabular-nums text-slate-700">{formatCurrencyPrecise(row.value)}</span>
               </div>
             ))}
           <div className="flex justify-between border-t border-slate-200 pt-1 text-sm font-bold text-brand-600">
             <span>Grand Total</span>
-            <span className="tabular-nums">{formatCurrency(doc.amount)}</span>
+            <span className="tabular-nums">{formatCurrencyPrecise(doc.amount)}</span>
           </div>
         </div>
       </div>
@@ -164,14 +160,8 @@ function formatCompanyAddress(company) {
     .join(', ')
 }
 
-function formatShippingAddress(doc) {
-  return [
-    doc.shipping_address_line1,
-    doc.shipping_address_line2,
-    doc.shipping_city,
-    doc.shipping_state,
-    doc.shipping_pincode,
-  ]
-    .filter(Boolean)
-    .join(', ')
+function shippingAddressLines(doc) {
+  const cityState = [doc.shipping_city, doc.shipping_state].filter(Boolean).join(', ')
+  const cityStatePincode = [cityState, doc.shipping_pincode].filter(Boolean).join(' - ')
+  return [doc.shipping_address_line1, doc.shipping_address_line2, cityStatePincode].filter(Boolean)
 }
