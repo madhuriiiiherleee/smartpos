@@ -435,7 +435,7 @@ export default function SalesReturnPage() {
                     disabled={saving}
                     className="rounded-lg bg-brand-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:opacity-60"
                   >
-                    {saving ? 'Saving...' : 'Save Return'}
+                    {saving ? 'Adding...' : 'Add Return'}
                   </button>
                 </div>
               </div>
@@ -650,7 +650,7 @@ export default function SalesReturnPage() {
         open={confirmOpen}
         title="Save Sales Return?"
         message="Are you sure you want to save this sales return?"
-        confirmLabel="Save Return"
+        confirmLabel="Add"
         onCancel={() => setConfirmOpen(false)}
         onConfirm={doSave}
         busy={saving}

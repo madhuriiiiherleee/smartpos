@@ -125,7 +125,7 @@ export default function FinancialYearPage() {
                 disabled={saving}
                 className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-700 disabled:opacity-60"
               >
-                {saving ? 'Saving...' : 'Save'}
+                {saving ? 'Adding...' : 'Add'}
               </button>
             </form>
           </div>
@@ -174,7 +174,7 @@ export default function FinancialYearPage() {
         message={`Are you sure you want to add financial year ${startYear}-${Number(startYear) + 1}${
           makeActive ? ' and make it the current year' : ''
         }?`}
-        confirmLabel="Save"
+        confirmLabel="Add"
         onCancel={() => setConfirmOpen(false)}
         onConfirm={doSave}
         busy={saving}

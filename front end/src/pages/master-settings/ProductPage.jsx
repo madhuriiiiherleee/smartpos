@@ -1,5 +1,5 @@
-import { Fragment, useEffect, useState } from 'react'
-import { ChevronDown, ChevronRight, Eye, Pencil, Plus, Trash2 } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Boxes, Eye, Pencil, Plus, Trash2 } from 'lucide-react'
 import { categoriesApi, extractErrorMessage, packingSizesApi, productDetailsApi, productsApi } from '../../api/master'
 import AddProductForm from '../../components/master/AddProductForm'
 import Modal from '../../components/master/Modal'
@@ -27,6 +27,54 @@ const EMPTY_PRODUCT_FORM = {
   mrp: '',
 }
 
+function PackSizesTable({ details, loading, onEdit }) {
+  if (loading && !details) return <div className="h-16 animate-pulse rounded-xl bg-slate-100" />
+  if (!details) return null
+  if (details.length === 0) return <p className="py-3 text-center text-sm text-slate-400">No pack sizes yet.</p>
+
+  return (
+    <div className="overflow-x-auto rounded-xl ring-1 ring-slate-900/5">
+      <table className="w-full border-collapse text-left text-sm">
+        <thead>
+          <tr className="bg-brand-600 text-xs uppercase tracking-wide text-white">
+            <th className="px-4 py-2 font-medium">Pack Code</th>
+            <th className="px-4 py-2 font-medium">Packing Size</th>
+            <th className="px-4 py-2 text-right font-medium">Qty / Box</th>
+            <th className="px-4 py-2 text-right font-medium">MRP</th>
+            <th className="px-4 py-2 text-right font-medium">Wholesale</th>
+            <th className="px-4 py-2 text-right font-medium">Retail Price</th>
+            {onEdit && <th className="px-4 py-2 text-right font-medium">Actions</th>}
+          </tr>
+        </thead>
+        <tbody>
+          {details.map((detail) => (
+            <tr key={detail.id} className="border-b border-slate-50 bg-white last:border-0">
+              <td className="px-4 py-2.5">{detail.code}</td>
+              <td className="px-4 py-2.5">{detail.packing_size}</td>
+              <td className="px-4 py-2.5 text-right tabular-nums">{detail.qty_per_box}</td>
+              <td className="px-4 py-2.5 text-right tabular-nums">{formatCurrency(detail.mrp)}</td>
+              <td className="px-4 py-2.5 text-right tabular-nums">{formatCurrency(detail.rate_per_unit)}</td>
+              <td className="px-4 py-2.5 text-right tabular-nums">{formatCurrency(detail.retail_price)}</td>
+              {onEdit && (
+                <td className="px-4 py-2.5 text-right">
+                  <button
+                    type="button"
+                    onClick={() => onEdit(detail)}
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-brand-600"
+                    aria-label={`Edit ${detail.code}`}
+                  >
+                    <Pencil size={14} />
+                  </button>
+                </td>
+              )}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 const EMPTY_DETAIL_FORM = {
   product_id: '',
   code: '',
@@ -47,7 +95,6 @@ export default function ProductPage() {
   const [categoryFilter, setCategoryFilter] = useState('')
   const debouncedSearch = useDebouncedValue(search)
 
-  const [expandedId, setExpandedId] = useState(null)
   const [detailsByProduct, setDetailsByProduct] = useState({})
   const [detailsLoading, setDetailsLoading] = useState(false)
 
@@ -119,15 +166,6 @@ export default function ProductPage() {
     }
   }
 
-  function toggleExpand(product) {
-    if (expandedId === product.id) {
-      setExpandedId(null)
-      return
-    }
-    setExpandedId(product.id)
-    if (!detailsByProduct[product.id]) loadDetails(product.id)
-  }
-
   function openAdd() {
     setEditingProductId(null)
     setProductForm({ ...EMPTY_PRODUCT_FORM, category_id: categories[0]?.id ?? '' })
@@ -137,6 +175,7 @@ export default function ProductPage() {
 
   function openEditProduct(product) {
     setEditingProductId(product.id)
+    if (!detailsByProduct[product.id]) loadDetails(product.id)
     setProductForm({
       ...EMPTY_PRODUCT_FORM,
       category_id: product.category_id,
@@ -235,7 +274,6 @@ export default function ProductPage() {
     setListError(null)
     try {
       await productsApi.remove(product.id)
-      if (expandedId === product.id) setExpandedId(null)
       await load()
       setResultDialog({
         variant: 'success',
@@ -371,7 +409,6 @@ export default function ProductPage() {
         <table className="w-full border-collapse text-left text-sm">
           <thead>
             <tr className="bg-brand-600 text-xs uppercase tracking-wide text-white">
-              <th className="w-10 px-3 py-3" />
               <th className="px-5 py-3 font-medium">Product Code</th>
               <th className="px-5 py-3 font-medium">Product Name</th>
               <th className="px-5 py-3 font-medium">Category</th>
@@ -387,7 +424,7 @@ export default function ProductPage() {
             {loading &&
               Array.from({ length: 5 }).map((_, i) => (
                 <tr key={i} className="border-b border-slate-50 last:border-0">
-                  <td colSpan={10} className="px-5 py-3.5">
+                  <td colSpan={9} className="px-5 py-3.5">
                     <div className="h-4 w-full max-w-md animate-pulse rounded bg-slate-100" />
                   </td>
                 </tr>
@@ -395,7 +432,7 @@ export default function ProductPage() {
 
             {!loading && items.length === 0 && (
               <tr>
-                <td colSpan={10} className="px-5 py-8 text-center text-sm text-slate-400">
+                <td colSpan={9} className="px-5 py-8 text-center text-sm text-slate-400">
                   No products found.
                 </td>
               </tr>
@@ -403,22 +440,9 @@ export default function ProductPage() {
 
             {!loading &&
               items.map((product, i) => {
-                const isExpanded = expandedId === product.id
                 const gstTotal = (product.cgst_percent ?? 0) + (product.sgst_percent ?? 0)
-                const details = detailsByProduct[product.id]
                 return (
-                  <Fragment key={product.id}>
-                    <tr className="border-b border-slate-50 text-slate-700 last:border-0 hover:bg-slate-50/60">
-                      <td className="px-3 py-3.5">
-                        <button
-                          type="button"
-                          onClick={() => toggleExpand(product)}
-                          aria-label={isExpanded ? `Collapse ${product.name}` : `Expand ${product.name}`}
-                          className="flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-brand-600"
-                        >
-                          {isExpanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
-                        </button>
-                      </td>
+                    <tr key={product.id} className="border-b border-slate-50 text-slate-700 last:border-0 hover:bg-slate-50/60">
                       <td className="px-5 py-3.5">{product.code}</td>
                       <td className="px-5 py-3.5">{product.name}</td>
                       <td className="px-5 py-3.5">{product.category_name || <span className="text-slate-300">—</span>}</td>
@@ -451,7 +475,10 @@ export default function ProductPage() {
                         <div className="flex items-center justify-end gap-1">
                           <button
                             type="button"
-                            onClick={() => setViewingProduct(product)}
+                            onClick={() => {
+                              setViewingProduct(product)
+                              if (!detailsByProduct[product.id]) loadDetails(product.id)
+                            }}
                             className="inline-flex items-center gap-1.5 rounded-md bg-brand-50 px-2.5 py-1.5 text-xs font-medium text-brand-700 transition hover:bg-brand-100"
                             aria-label="View"
                           >
@@ -476,80 +503,6 @@ export default function ProductPage() {
                         </div>
                       </td>
                     </tr>
-                    {isExpanded && (
-                      <tr key={`${product.id}-details`} className="border-b border-slate-50 bg-slate-50/50 last:border-0">
-                        <td colSpan={10} className="px-6 py-4">
-                          <div className="flex items-center justify-between pb-3">
-                            <h4 className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-                              Pack Sizes for {product.name}
-                            </h4>
-                            <button
-                              type="button"
-                              onClick={() => openAddDetail(product)}
-                              className="flex items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-medium text-brand-600 shadow-sm ring-1 ring-slate-200 transition hover:bg-brand-50"
-                            >
-                              <Plus size={14} strokeWidth={2.5} />
-                              Add Pack Size
-                            </button>
-                          </div>
-
-                          {detailsLoading && !details && (
-                            <div className="h-4 w-48 animate-pulse rounded bg-slate-100" />
-                          )}
-
-                          {details && details.length === 0 && (
-                            <p className="text-sm text-slate-400">No pack sizes yet.</p>
-                          )}
-
-                          {details && details.length > 0 && (
-                            <div className="overflow-x-auto rounded-xl bg-white ring-1 ring-slate-900/5">
-                              <table className="w-full border-collapse text-left text-sm">
-                                <thead>
-                                  <tr className="bg-brand-600 text-xs uppercase tracking-wide text-white">
-                                    <th className="px-4 py-2 font-medium">Pack Code</th>
-                                    <th className="px-4 py-2 font-medium">Packing Size</th>
-                                    <th className="px-4 py-2 text-right font-medium">Qty / Box</th>
-                                    <th className="px-4 py-2 text-right font-medium">MRP</th>
-                                    <th className="px-4 py-2 text-right font-medium">Wholesale</th>
-                                    <th className="px-4 py-2 text-right font-medium">Retail Price</th>
-                                    <th className="px-4 py-2 text-right font-medium">Actions</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {details.map((detail) => (
-                                    <tr key={detail.id} className="border-b border-slate-50 last:border-0">
-                                      <td className="px-4 py-2.5">{detail.code}</td>
-                                      <td className="px-4 py-2.5">{detail.packing_size}</td>
-                                      <td className="px-4 py-2.5 text-right tabular-nums">{detail.qty_per_box}</td>
-                                      <td className="px-4 py-2.5 text-right tabular-nums">
-                                        {formatCurrency(detail.mrp)}
-                                      </td>
-                                      <td className="px-4 py-2.5 text-right tabular-nums">
-                                        {formatCurrency(detail.rate_per_unit)}
-                                      </td>
-                                      <td className="px-4 py-2.5 text-right tabular-nums">
-                                        {formatCurrency(detail.retail_price)}
-                                      </td>
-                                      <td className="px-4 py-2.5 text-right">
-                                        <button
-                                          type="button"
-                                          onClick={() => openEditDetail(product, detail)}
-                                          className="inline-flex h-7 w-7 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-brand-600"
-                                          aria-label={`Edit ${detail.code}`}
-                                        >
-                                          <Pencil size={14} />
-                                        </button>
-                                      </td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    )}
-                  </Fragment>
                 )
               })}
           </tbody>
@@ -576,12 +529,19 @@ export default function ProductPage() {
                 disabled={savingProduct}
                 className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
               >
-                {savingProduct ? 'Saving...' : 'Save'}
+                {editingProductId
+                  ? savingProduct
+                    ? 'Updating...'
+                    : 'Update'
+                  : savingProduct
+                    ? 'Adding...'
+                    : 'Add'}
               </button>
             </>
           }
         >
 {editingProductId ? (
+          <>
           <form id="product-form" onSubmit={handleProductUpdate} className="space-y-4">
             {productFormError && (
               <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-600">
@@ -669,6 +629,31 @@ export default function ProductPage() {
               />
             </div>
           </form>
+
+          <div className="mt-6 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+            <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-5 py-3">
+              <h3 className="flex items-center gap-2 text-sm font-bold text-slate-800">
+                <Boxes size={15} strokeWidth={2.25} className="text-slate-500" />
+                Pack Sizes
+              </h3>
+              <button
+                type="button"
+                onClick={() => openAddDetail({ id: editingProductId, name: productForm.name })}
+                className="flex items-center gap-1.5 rounded-lg bg-brand-50 px-3 py-1.5 text-xs font-medium text-brand-700 transition hover:bg-brand-100"
+              >
+                <Plus size={14} strokeWidth={2.5} />
+                Add Pack Size
+              </button>
+            </div>
+            <div className="p-5">
+              <PackSizesTable
+                details={detailsByProduct[editingProductId]}
+                loading={detailsLoading}
+                onEdit={(detail) => openEditDetail({ id: editingProductId, name: productForm.name }, detail)}
+              />
+            </div>
+          </div>
+          </>
         ) : (
           <AddProductForm
             formId="product-form"
@@ -702,7 +687,13 @@ export default function ProductPage() {
                 disabled={savingDetail}
                 className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
               >
-                {savingDetail ? 'Saving...' : 'Save'}
+                {editingDetailId
+                  ? savingDetail
+                    ? 'Updating...'
+                    : 'Update'
+                  : savingDetail
+                    ? 'Adding...'
+                    : 'Add'}
               </button>
             </>
           }
@@ -814,7 +805,7 @@ export default function ProductPage() {
             ? `Are you sure you want to save changes to "${productForm.name.trim() || 'this product'}"?`
             : `Are you sure you want to add "${pendingProductValues?.name?.trim() || 'this product'}"?`
         }
-        confirmLabel="Save"
+        confirmLabel={editingProductId ? 'Update' : 'Add'}
         onCancel={() => setProductConfirmOpen(false)}
         onConfirm={editingProductId ? doUpdateProduct : doCreateProduct}
         busy={savingProduct}
@@ -825,7 +816,7 @@ export default function ProductPage() {
         message={`Are you sure you want to ${
           editingDetailId ? 'save changes to' : 'add'
         } "${detailForm.code || detailProductName}"?`}
-        confirmLabel="Save"
+        confirmLabel={editingDetailId ? 'Update' : 'Add'}
         onCancel={() => setDetailConfirmOpen(false)}
         onConfirm={doSaveDetail}
         busy={savingDetail}
@@ -878,6 +869,18 @@ export default function ProductPage() {
             <ViewCard title="Description">
               <ViewField label="Description" value={viewingProduct.description} />
             </ViewCard>
+
+            <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+              <div className="border-b border-slate-100 bg-slate-50/80 px-5 py-3">
+                <h3 className="flex items-center gap-2 text-sm font-bold text-slate-800">
+                  <Boxes size={15} strokeWidth={2.25} className="text-slate-500" />
+                  Pack Sizes
+                </h3>
+              </div>
+              <div className="p-5">
+                <PackSizesTable details={detailsByProduct[viewingProduct.id]} loading={detailsLoading} />
+              </div>
+            </div>
           </div>
         </Modal>
       )}

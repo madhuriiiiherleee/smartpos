@@ -58,7 +58,7 @@ export default function QuickAddProductModal({ categories, packingSizes, default
             disabled={saving}
             className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
           >
-            {saving ? 'Saving...' : 'Save'}
+            {saving ? 'Adding...' : 'Add'}
           </button>
         </>
       }
@@ -76,7 +76,7 @@ export default function QuickAddProductModal({ categories, packingSizes, default
         open={confirmOpen}
         title="Add Product?"
         message={`Are you sure you want to add "${pendingValues?.name?.trim() || 'this product'}"?`}
-        confirmLabel="Save"
+        confirmLabel="Add"
         onCancel={() => setConfirmOpen(false)}
         onConfirm={doSave}
         busy={saving}

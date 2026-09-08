@@ -187,7 +187,7 @@ export default function VendorPage() {
                 disabled={saving}
                 className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
               >
-                {saving ? 'Saving...' : 'Save'}
+                {editingId ? (saving ? 'Updating...' : 'Update') : saving ? 'Adding...' : 'Add'}
               </button>
             </>
           }
@@ -208,7 +208,7 @@ export default function VendorPage() {
         message={`Are you sure you want to ${editingId ? 'save changes to' : 'add'} "${
           form.name.trim() || 'this vendor'
         }"?`}
-        confirmLabel="Save"
+        confirmLabel={editingId ? 'Update' : 'Add'}
         onCancel={() => setConfirmOpen(false)}
         onConfirm={doSave}
         busy={saving}

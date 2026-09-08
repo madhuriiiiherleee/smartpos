@@ -260,7 +260,7 @@ export default function SalesOrderEntryPage() {
             disabled={saving}
             className="rounded-lg bg-brand-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:opacity-60"
           >
-            {saving ? 'Saving...' : 'Save Sales Order'}
+            {isEdit ? (saving ? 'Updating...' : 'Update Sales Order') : saving ? 'Adding...' : 'Add Sales Order'}
           </button>
         </div>
       </main>
@@ -269,7 +269,7 @@ export default function SalesOrderEntryPage() {
         open={confirmOpen}
         title={isEdit ? 'Save Sales Order Changes?' : 'Save Sales Order?'}
         message={`Are you sure you want to ${isEdit ? 'save the changes to this order' : 'save this order'}?`}
-        confirmLabel="Save Order"
+        confirmLabel={isEdit ? 'Update' : 'Add'}
         onCancel={() => setConfirmOpen(false)}
         onConfirm={doSave}
         busy={saving}

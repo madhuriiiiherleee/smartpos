@@ -357,7 +357,7 @@ export default function CompanyProfilePage({ embedded = false }) {
                   disabled={saving}
                   className="rounded-lg bg-emerald-600 px-5 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-60"
                 >
-                  {saving ? 'Saving...' : 'Save'}
+                  {saving ? 'Updating...' : 'Update'}
                 </button>
               </>
             ) : (
@@ -377,7 +377,7 @@ export default function CompanyProfilePage({ embedded = false }) {
         open={confirmOpen}
         title="Save Company Profile?"
         message={`Are you sure you want to save the changes to "${form.company_name?.trim() || 'company profile'}"?`}
-        confirmLabel="Save"
+        confirmLabel="Update"
         onCancel={() => setConfirmOpen(false)}
         onConfirm={doSave}
         busy={saving}

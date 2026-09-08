@@ -278,7 +278,7 @@ export default function PurchaseEntryPage() {
             disabled={saving}
             className="rounded-lg bg-brand-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:opacity-60"
           >
-            {saving ? 'Saving...' : 'Save Purchase'}
+            {isEdit ? (saving ? 'Updating...' : 'Update Purchase') : saving ? 'Adding...' : 'Add Purchase'}
           </button>
         </div>
       </main>
@@ -287,7 +287,7 @@ export default function PurchaseEntryPage() {
         open={confirmOpen}
         title={isEdit ? 'Save Purchase Changes?' : 'Save Purchase?'}
         message={`Are you sure you want to ${isEdit ? 'save the changes to this purchase' : 'save this purchase'}?`}
-        confirmLabel="Save"
+        confirmLabel={isEdit ? 'Update' : 'Add'}
         onCancel={() => setConfirmOpen(false)}
         onConfirm={doSave}
         busy={saving}
