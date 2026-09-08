@@ -210,7 +210,20 @@ export default function ManagePurchasePage() {
       </main>
 
       {viewOpen && (
-        <Modal title="Purchase Invoice" onClose={closeView} size="xl">
+        <Modal 
+          title="Purchase Invoice" 
+          onClose={closeView} 
+          size="xl"
+          footer={
+            <button
+              type="button"
+              onClick={closeView}
+              className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+            >
+              Close
+            </button>
+          }
+        >
           {viewing ? (
             <PurchaseInvoiceBody purchase={viewing} company={company} />
           ) : (

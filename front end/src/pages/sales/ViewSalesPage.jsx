@@ -246,7 +246,7 @@ export default function ViewSalesPage() {
                     <td className="px-5 py-3.5 font-medium">{s.invoice_no}</td>
                     <td className="px-5 py-3.5 text-right font-semibold tabular-nums">{formatCurrency(s.amount)}</td>
                     <td className="px-5 py-3.5">{s.customer_name || <span className="text-slate-300">—</span>}</td>
-                    <td className="px-5 py-3.5">{formatDDMMYYYY(s.sale_date)}</td>
+                    <td className="px-5 py-3.5">{s.sale_date ? formatDDMMYYYY(s.sale_date) : ''}</td>
                     <td className="px-5 py-3.5 text-right print:hidden">
                       <div className="flex items-center justify-end gap-1">
                         <Link
@@ -376,7 +376,20 @@ export default function ViewSalesPage() {
       )}
 
       {viewOpen && (
-        <Modal title="Sales Invoice" onClose={closeView} size="xl">
+        <Modal 
+          title="Sales Invoice" 
+          onClose={closeView} 
+          size="xl"
+          footer={
+            <button
+              type="button"
+              onClick={closeView}
+              className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+            >
+              Close
+            </button>
+          }
+        >
           {viewing ? (
             <SalesInvoiceBody sale={viewing} company={company} />
           ) : (
