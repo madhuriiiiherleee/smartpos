@@ -10,8 +10,29 @@ export function FieldLabel({ children, required }) {
 const inputClasses =
   'w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500'
 
-export function TextInput(props) {
-  return <input {...props} className={`${inputClasses} ${props.className || ''}`} />
+export function TextInput({ onKeyDown, onWheel, ...props }) {
+  function handleKeyDown(e) {
+    if (props.type === 'number' && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+      e.preventDefault()
+    }
+    onKeyDown?.(e)
+  }
+
+  function handleWheel(e) {
+    if (props.type === 'number') {
+      e.target.blur()
+    }
+    onWheel?.(e)
+  }
+
+  return (
+    <input
+      {...props}
+      onKeyDown={handleKeyDown}
+      onWheel={handleWheel}
+      className={`${inputClasses} ${props.className || ''}`}
+    />
+  )
 }
 
 export function TextArea(props) {
