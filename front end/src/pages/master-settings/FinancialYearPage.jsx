@@ -5,11 +5,13 @@ import AlertDialog from '../../components/shared/AlertDialog'
 import ConfirmDialog from '../../components/shared/ConfirmDialog'
 import { FieldLabel, Select } from '../../components/master/FormField'
 import { formatDDMMYYYY } from '../../lib/format'
+import { useAuth } from '../../context/AuthContext'
 
 const CURRENT_YEAR = new Date().getFullYear()
 const YEAR_OPTIONS = Array.from({ length: 15 }, (_, i) => CURRENT_YEAR - 5 + i)
 
 export default function FinancialYearPage() {
+  const { refreshUser } = useAuth()
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
   const [startYear, setStartYear] = useState('')
@@ -50,7 +52,7 @@ export default function FinancialYearPage() {
       await financialYearsApi.create({ start_year: Number(startYear), make_active: makeActive })
       setStartYear('')
       setMakeActive(true)
-      await load()
+      await Promise.all([load(), makeActive ? refreshUser() : Promise.resolve()])
       setResultDialog({
         variant: 'success',
         title: 'Financial Year Added Successfully',
@@ -69,7 +71,7 @@ export default function FinancialYearPage() {
 
   async function handleActivate(id) {
     await financialYearsApi.activate(id)
-    await load()
+    await Promise.all([load(), refreshUser()])
   }
 
   return (
