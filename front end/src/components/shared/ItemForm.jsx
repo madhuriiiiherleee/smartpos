@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Boxes, IndianRupee, Lock, Package, Percent, Plus } from 'lucide-react'
+import { Boxes, IndianRupee, Lock, Package, Plus } from 'lucide-react'
 import { categoriesApi, packingSizesApi, productDetailsApi, productsApi } from '../../api/master'
 import { FieldLabel, Select, TextInput } from '../master/FormField'
 import QuickAddProductModal from '../master/QuickAddProductModal'
@@ -509,7 +509,7 @@ export default function ItemForm({
         </div>
 
         <div>
-          <IconLabel icon={Percent} required>GST %</IconLabel>
+          <FieldLabel required>GST %</FieldLabel>
           <Select value={form.gst_percent} onChange={(e) => setForm({ ...form, gst_percent: e.target.value })}>
             {GST_SLABS.map((slab) => (
               <option key={slab} value={slab}>
