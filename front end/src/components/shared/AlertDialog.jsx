@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { CircleCheck, TriangleAlert } from 'lucide-react'
 
-const AUTO_CLOSE_MS = 2500
+const AUTO_CLOSE_MS = 1500
 
 export default function AlertDialog({ open, variant = 'success', title, message, onClose, onCloseNav }) {
   const onCloseRef = useRef(onClose)
@@ -35,7 +35,12 @@ export default function AlertDialog({ open, variant = 'success', title, message,
     if (onCloseNav) onCloseNav()
   }
   return (
-    <div className="dialog-overlay fixed inset-0 z-50 flex items-center justify-center bg-slate-900/65 px-4">
+    <div
+      className="dialog-overlay fixed inset-0 z-50 flex items-center justify-center bg-slate-900/65 px-4"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) handleClose()
+      }}
+    >
       <div className="dialog-card w-full max-w-md rounded-2xl bg-white p-8 text-center shadow-xl">
         <div
           className={`mx-auto flex h-20 w-20 items-center justify-center rounded-full ${

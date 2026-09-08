@@ -4,12 +4,13 @@ module that needs it (Purchase, Sales, Sales Order, Sales Return).
 Same concept as the LegalDesk B2B project: a `financial_years` table with
 one row marked active at a time, and a per-(series, financial_year) counter
 reserved atomically via INSERT ... ON CONFLICT ... DO UPDATE so concurrent
-saves can never hand out the same number. Unlike LegalDesk, there is no
-admin screen here to manually pick the active year — the active financial
-year is instead derived from the document's own date (India FY: April 1 -
+saves can never hand out the same number. The admin Financial Year screen
+picks the active year manually ("Make it current" / "Make Active"): that
+active row wins whenever one exists, so activating an old year makes new
+documents number under it. Only when no row is active (fresh database) is
+the active year derived from the document's own date (India FY: April 1 -
 March 31), auto-provisioning a new financial_years row the first time a
-date in a new year is used. That keeps numbering correct across a
-financial-year rollover with zero manual steps.
+date in a new year is used.
 
 `DocumentSeriesCounter` lives in the `purchase_series_counters` table (the
 name predates Sales/Sales Order/Sales Return reusing it) — the schema
@@ -32,7 +33,12 @@ def financial_year_label(start_year: int) -> str:
     return f"{start_year}-{(start_year + 1) % 100:02d}"
 
 
-def start_year_for(on_date: date) -> int:    return on_date.year if on_date.month >= 4 else on_date.year - 1
+def start_year_for(on_date: date) -> int:
+    return on_date.year if on_date.month >= 4 else on_date.year - 1
+
+
+def active_financial_year(db: Session) -> FinancialYear | None:
+    return db.execute(select(FinancialYear).where(FinancialYear.is_active == True)).scalar_one_or_none()  # noqa: E712
 
 
 def financial_year_bounds(start_year: int) -> tuple[date, date]:
@@ -41,6 +47,12 @@ def financial_year_bounds(start_year: int) -> tuple[date, date]:
 
 
 def resolve_financial_year(db: Session, on_date: date) -> FinancialYear:
+    # A manually-activated year always wins over the document date. Only fall
+    # back to date-derived auto-activation when nothing is active (fresh DB).
+    active = active_financial_year(db)
+    if active is not None:
+        return active
+
     start_year = start_year_for(on_date)
     fy = db.execute(select(FinancialYear).where(FinancialYear.start_year == start_year)).scalar_one_or_none()
     if fy and fy.is_active:
@@ -86,8 +98,12 @@ def reserve_next_number(db: Session, financial_year: FinancialYear, series_key: 
 
 def peek_next_number(db: Session, series_key: str, prefix: str, on_date: date | None = None) -> tuple[str, str]:
     """Preview only — does not reserve a number. Returns (document_number, financial_year_label)."""
-    resolved_date = on_date or date.today()
-    start_year = start_year_for(resolved_date)
+    active = active_financial_year(db)
+    if active is not None:
+        start_year = active.start_year
+    else:
+        resolved_date = on_date or date.today()
+        start_year = start_year_for(resolved_date)
     label = financial_year_label(start_year)
 
     fy = db.execute(select(FinancialYear).where(FinancialYear.start_year == start_year)).scalar_one_or_none()

@@ -7,19 +7,22 @@ from sqlalchemy.orm import Session
 from app.auth import COOKIE_NAME, create_access_token, get_current_user, hash_password, verify_password
 from app.config import settings
 from app.database import get_db
-from app.models import User
+from app.models import FinancialYear, User
 from app.numbering import financial_year_label, start_year_for
 from app.schemas_auth import ChangePasswordRequest, CreateUserRequest, LoginRequest, UserOut, UserSummary
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
-def _current_financial_year_label() -> str:
+def _current_financial_year_label(db: Session) -> str:
+    active = db.execute(select(FinancialYear).where(FinancialYear.is_active == True)).scalar_one_or_none()  # noqa: E712
+    if active:
+        return active.label
     return financial_year_label(start_year_for(date.today()))
 
 
-def _user_out(user: User) -> UserOut:
-    return UserOut(id=user.id, username=user.username, financial_year=_current_financial_year_label())
+def _user_out(user: User, db: Session) -> UserOut:
+    return UserOut(id=user.id, username=user.username, financial_year=_current_financial_year_label(db))
 
 
 @router.post("/login", response_model=UserOut)
@@ -37,7 +40,7 @@ def login(payload: LoginRequest, response: Response, db: Session = Depends(get_d
         secure=settings.cookie_secure,
         max_age=settings.access_token_expire_minutes * 60,
     )
-    return _user_out(user)
+    return _user_out(user, db)
 
 
 @router.post("/logout")
@@ -47,8 +50,8 @@ def logout(response: Response):
 
 
 @router.get("/me", response_model=UserOut)
-def me(current_user: User = Depends(get_current_user)):
-    return _user_out(current_user)
+def me(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return _user_out(current_user, db)
 
 
 @router.post("/change-password")

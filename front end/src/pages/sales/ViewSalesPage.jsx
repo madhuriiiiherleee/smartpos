@@ -275,9 +275,9 @@ export default function ViewSalesPage() {
                         <Link
                           to={`/sales/return?invoice=${encodeURIComponent(s.invoice_no)}`}
                           aria-label={`Credit note for ${s.invoice_no}`}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-brand-600"
+                          className="inline-flex items-center gap-1.5 rounded-md bg-amber-50 px-2.5 py-1.5 text-xs font-medium text-amber-700 transition hover:bg-amber-100"
                         >
-                          <CornerUpLeft size={16} />
+                          <CornerUpLeft size={14} /> Return
                         </Link>
                         <button
                           type="button"
@@ -291,9 +291,9 @@ export default function ViewSalesPage() {
                           to={`/sales/invoice/${s.id}?autoprint=1`}
                           target="_blank"
                           aria-label={`Download ${s.invoice_no}`}
-                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-brand-600"
+                          className="inline-flex items-center gap-1.5 rounded-md bg-slate-100 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-200"
                         >
-                          <Download size={16} />
+                          <Download size={14} /> PDF
                         </Link>
                       </div>
                     </td>

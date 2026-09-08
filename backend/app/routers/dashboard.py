@@ -19,19 +19,33 @@ from app.models import (
     SalesOrder,
     SalesReturnItem,
 )
-from app.numbering import start_year_for
+from app.numbering import active_financial_year, financial_year_bounds, start_year_for
 from app.schemas import CustomerBalanceItem, DashboardSummary, LowStockItem, MonthlyReportItem
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
 
+def _active_fy_start_year(db: Session) -> int:
+    active = active_financial_year(db)
+    if active is not None:
+        return active.start_year
+    return start_year_for(date.today())
+
+
 @router.get("/summary", response_model=DashboardSummary)
 def get_summary(db: Session = Depends(get_db)):
-    purchase_register = db.scalar(select(func.coalesce(func.sum(Purchase.amount), 0))) or 0
-    sales_order_count = db.scalar(select(func.count(SalesOrder.id))) or 0
-    sales_count = db.scalar(select(func.count(Sale.id))) or 0
-    sales_register = db.scalar(select(func.coalesce(func.sum(Sale.amount), 0))) or 0
+    fy_start, fy_end = financial_year_bounds(_active_fy_start_year(db))
+    purchase_register = db.scalar(
+        select(func.coalesce(func.sum(Purchase.amount), 0)).where(Purchase.purchase_date >= fy_start, Purchase.purchase_date <= fy_end)
+    ) or 0
+    sales_count = db.scalar(
+        select(func.count(Sale.id)).where(Sale.sale_date >= fy_start, Sale.sale_date <= fy_end)
+    ) or 0
+    sales_register = db.scalar(
+        select(func.coalesce(func.sum(Sale.amount), 0)).where(Sale.sale_date >= fy_start, Sale.sale_date <= fy_end)
+    ) or 0
     customer_payment = db.scalar(select(func.coalesce(func.sum(CustomerPayment.amount), 0))) or 0
+    sales_order_count = db.scalar(select(func.count(SalesOrder.id))) or 0
 
     return DashboardSummary(
         purchase_register=float(purchase_register),
@@ -45,8 +59,9 @@ def get_summary(db: Session = Depends(get_db)):
 @router.get("/purchase-sales-report", response_model=list[MonthlyReportItem])
 def get_purchase_sales_report(year: int | None = None, db: Session = Depends(get_db)):
     """Returns the 12 months of the Indian financial year (April - March)
-    starting in `year`, defaulting to the FY the current date falls in."""
-    fy_start_year = year or start_year_for(date.today())
+    starting in `year`, defaulting to the active financial year when one is
+    set, otherwise the FY the current date falls in."""
+    fy_start_year = year or _active_fy_start_year(db)
     fy_months = [(fy_start_year, month) for month in range(4, 13)] + [
         (fy_start_year + 1, month) for month in range(1, 4)
     ]
