@@ -10,23 +10,20 @@ import { GST_SLABS } from '../../lib/constants'
 
 function IconLabel({ icon: Icon, required, children }) {
   return (
-    <FieldLabel required={required}>
-      <span className="inline-flex items-center whitespace-nowrap">
-        <Icon size={13} strokeWidth={2.25} className="mr-1 text-slate-400" />
-        {children}
-      </span>
-    </FieldLabel>
+    <label className="mb-1.5 flex items-center whitespace-nowrap text-sm font-medium text-slate-700">
+      <Icon size={13} strokeWidth={2.25} className="mr-1 shrink-0 text-slate-400" />
+      {children}
+      {required && <span className="ml-0.5 text-rose-500">*</span>}
+    </label>
   )
 }
 
 function LockedLabel({ children }) {
   return (
-    <FieldLabel>
-      <span className="inline-flex items-center whitespace-nowrap">
-        {children}
-        <Lock size={10} strokeWidth={2.5} className="ml-1.5 text-slate-300" />
-      </span>
-    </FieldLabel>
+    <label className="mb-1.5 flex items-center whitespace-nowrap text-sm font-medium text-slate-700">
+      {children}
+      <Lock size={10} strokeWidth={2.5} className="ml-1.5 shrink-0 text-slate-300" />
+    </label>
   )
 }
 
@@ -256,7 +253,13 @@ export default function ItemForm({
   }
 
   function handleProductChange(value) {
-    setForm((f) => ({ ...f, product_id: value, product_detail_id: '' }))
+    const product = products.find((p) => p.id === Number(value))
+    setForm((f) => ({
+      ...f,
+      product_id: value,
+      category_id: product?.category_id != null ? String(product.category_id) : f.category_id,
+      product_detail_id: '',
+    }))
   }
 
   function handleDetailChange(value) {
