@@ -195,9 +195,8 @@ def _product_read(product: Product) -> ProductRead:
     data.pack_size_count = len(details)
     if details:
         primary = details[0]
-        data.wholesale_price = float(primary.rate_per_unit)
-        data.retail_price_amount = float(primary.retail_price)
-        data.mrp_amount = float(primary.mrp)
+        data.wholesale_price = float(primary.rate_per_unit or 0)
+        data.mrp_amount = float(primary.mrp or 0)
     return data
 
 
@@ -233,8 +232,10 @@ def create_product_with_detail(payload: ProductWithDetailCreate, db: Session = D
     data = payload.model_dump()
     detail_fields = {
         key: data.pop(key)
-        for key in ("packing_size_id", "qty_per_box", "rate_per_unit", "retail_price", "mrp")
+        for key in ("packing_size_id", "qty_per_box", "rate_per_unit", "mrp")
     }
+    if detail_fields.get("rate_per_unit") is None:
+        detail_fields["rate_per_unit"] = 0
     product = Product(**data)
     db.add(product)
     db.flush()

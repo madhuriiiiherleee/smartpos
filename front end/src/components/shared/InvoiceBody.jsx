@@ -11,7 +11,6 @@ export default function InvoiceBody({
   rightLines = [],
   paymentLabel,
   priceKey = 'price',
-  showRetailPrice = false,
   showDiscount = false,
   extraTotalsRows = [],
   declaration = null,
@@ -63,7 +62,6 @@ export default function InvoiceBody({
               <th className="py-2 font-medium">Product</th>
               <th className="py-2 font-medium">HSN</th>
               <th className="py-2 text-right font-medium">Qty</th>
-              {showRetailPrice && <th className="py-2 text-right font-medium">Retail Price</th>}
               <th className="py-2 text-right font-medium">Price</th>
               {showDiscount && <th className="py-2 text-right font-medium">Discount</th>}
               <th className="py-2 text-right font-medium">Taxable</th>
@@ -88,15 +86,6 @@ export default function InvoiceBody({
                     </div>
                   )}
                 </td>
-                {showRetailPrice && (
-                  <td className="py-2 text-right tabular-nums">
-                    {item.retail_price == null ? (
-                      <span className="text-slate-300">—</span>
-                    ) : (
-                      formatCurrencyPrecise(item.retail_price)
-                    )}
-                  </td>
-                )}
                 <td className="py-2 text-right tabular-nums">{formatCurrencyPrecise(item[priceKey])}</td>
                 {showDiscount && (
                   <td className="py-2 text-right tabular-nums text-slate-500">

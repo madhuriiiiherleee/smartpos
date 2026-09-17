@@ -3,8 +3,8 @@ import tailwindcss from '@tailwindcss/vite'
 import { defineConfig } from 'vite'
 
 // https://vite.dev/config/
-export default defineConfig(({ command }) => ({
-  base: command === 'build' ? '/smartpos/' : '/',
+export default defineConfig({
+  base: '/',
   plugins: [react(), tailwindcss()],
   server: {
     port: 5174,
@@ -19,4 +19,4 @@ export default defineConfig(({ command }) => ({
       },
     },
   },
-}))
+})

@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import SalesOrder, SalesOrderItem
-from app.numbering import peek_next_number, reserve_next_number, resolve_financial_year
+from app.numbering import active_financial_year_id, peek_next_number, reserve_next_number, resolve_financial_year
 from app.schemas_sales import (
     NextNumberResponse,
     SalesOrderCreate,
@@ -110,6 +110,10 @@ def list_sales_orders(
 ):
     # Excludes legacy dashboard-demo rows (seeded before this module existed).
     stmt = select(SalesOrder).where(SalesOrder.customer_id.isnot(None))
+    if not date_from and not date_to:
+        fy_id = active_financial_year_id(db)
+        if fy_id is not None:
+            stmt = stmt.where(SalesOrder.financial_year_id == fy_id)
     if date_from:
         stmt = stmt.where(SalesOrder.order_date >= date_from)
     if date_to:

@@ -3,6 +3,7 @@ import { Download, Printer } from 'lucide-react'
 import { categoriesApi, productsApi } from '../../api/master'
 import { reportsApi } from '../../api/reports'
 import { FieldLabel, Select } from '../../components/master/FormField'
+import { formatDDMMYYYY } from '../../lib/format'
 
 export default function StockReportPage() {
   const [categories, setCategories] = useState([])
@@ -47,10 +48,13 @@ export default function StockReportPage() {
     <div>
       
 
-      <h1 className="hidden px-1 pb-3 text-lg font-semibold text-slate-800 print:block uppercase tracking-wide">Stock Report</h1>
+      <div className="hidden items-baseline justify-between border-b border-slate-200 px-1 pb-3 print:flex">
+        <h1 className="text-lg font-semibold uppercase tracking-wide text-slate-800">Stock Report</h1>
+        <p className="text-xs text-slate-500">Printed on: {formatDDMMYYYY(new Date().toISOString().slice(0, 10))}</p>
+      </div>
 
       <main className="space-y-4 px-6 py-6 print:space-y-0 print:p-[12mm]">
-        <div className="mb-6 flex items-center justify-between">
+        <div className="mb-6 flex items-center justify-between print:hidden">
           <h1 className="text-2xl font-bold text-slate-800 uppercase tracking-wide">Stock Report</h1>
         </div>
         <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-900/5 print:hidden">

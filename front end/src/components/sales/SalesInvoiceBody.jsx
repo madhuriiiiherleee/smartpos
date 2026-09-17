@@ -13,7 +13,6 @@ export default function SalesInvoiceBody({ sale, company }) {
       partyAttn={sale.shipping_name ? `Attn: ${sale.shipping_name}` : null}
       rightLines={sale.state_of_supply ? [`State of Supply: ${sale.state_of_supply}`] : []}
       priceKey="price"
-      showRetailPrice
       declaration={company?.invoice_declaration}
     />
   )

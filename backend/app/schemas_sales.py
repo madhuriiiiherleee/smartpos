@@ -49,7 +49,6 @@ class SaleItemRead(BaseModel):
     uom: str
     price: float
     price_inc_gst: bool = False
-    retail_price: float | None = None
     discount_percent: float
     gst_percent: float
     is_igst: bool

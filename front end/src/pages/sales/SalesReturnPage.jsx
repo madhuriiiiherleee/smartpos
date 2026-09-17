@@ -149,8 +149,10 @@ export default function SalesReturnPage() {
     if (!invoiceParam) return
     salesApi.list({ q: invoiceParam, page: 1, page_size: 5 }).then((result) => {
       const exact = result.items.find((i) => i.invoice_no === invoiceParam)
-      if (exact) handleSelectSale(exact)
-      else {
+      if (exact) {
+        handleSelectSale(exact)
+        setNewReturnOpen(true)
+      } else {
         setMatches(result.items)
         if (result.items.length > 0) setNewReturnOpen(true)
       }
@@ -411,7 +413,7 @@ export default function SalesReturnPage() {
                   </div>
                 </div>
 
-                <div className="flex flex-col items-stretch gap-4 rounded-xl bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col items-stretch gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex flex-wrap gap-8">
                     <div>
                       <p className="text-xs uppercase tracking-wide text-slate-400">Taxable Amount</p>

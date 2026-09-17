@@ -41,6 +41,11 @@ def active_financial_year(db: Session) -> FinancialYear | None:
     return db.execute(select(FinancialYear).where(FinancialYear.is_active == True)).scalar_one_or_none()  # noqa: E712
 
 
+def active_financial_year_id(db: Session) -> int | None:
+    active = active_financial_year(db)
+    return active.id if active is not None else None
+
+
 def financial_year_bounds(start_year: int) -> tuple[date, date]:
     """India FY: April 1 of start_year through March 31 of start_year + 1."""
     return date(start_year, 4, 1), date(start_year + 1, 3, 31)

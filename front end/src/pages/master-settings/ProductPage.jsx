@@ -23,7 +23,6 @@ const EMPTY_PRODUCT_FORM = {
   packing_size_id: '',
   qty_per_box: '',
   wholesale_price: '',
-  retail_price: '',
   mrp: '',
 }
 
@@ -42,7 +41,6 @@ function PackSizesTable({ details, loading, onEdit }) {
             <th className="px-4 py-2 text-right font-medium">Qty / Box</th>
             <th className="px-4 py-2 text-right font-medium">MRP</th>
             <th className="px-4 py-2 text-right font-medium">Wholesale</th>
-            <th className="px-4 py-2 text-right font-medium">Retail Price</th>
             {onEdit && <th className="px-4 py-2 text-right font-medium">Actions</th>}
           </tr>
         </thead>
@@ -54,7 +52,6 @@ function PackSizesTable({ details, loading, onEdit }) {
               <td className="px-4 py-2.5 text-right tabular-nums">{detail.qty_per_box}</td>
               <td className="px-4 py-2.5 text-right tabular-nums">{formatCurrency(detail.mrp)}</td>
               <td className="px-4 py-2.5 text-right tabular-nums">{formatCurrency(detail.rate_per_unit)}</td>
-              <td className="px-4 py-2.5 text-right tabular-nums">{formatCurrency(detail.retail_price)}</td>
               {onEdit && (
                 <td className="px-4 py-2.5 text-right">
                   <button
@@ -81,7 +78,6 @@ const EMPTY_DETAIL_FORM = {
   packing_size_id: '',
   qty_per_box: '',
   wholesale_price: '',
-  retail_price: '',
   mrp: '',
 }
 
@@ -316,7 +312,6 @@ export default function ProductPage() {
       packing_size_id: detail.packing_size_id,
       qty_per_box: detail.qty_per_box,
       wholesale_price: detail.rate_per_unit ?? '',
-      retail_price: detail.retail_price,
       mrp: detail.mrp,
     })
     setEditingDetailPackingSize({ id: detail.packing_size_id, label: detail.packing_size, active: true })
@@ -342,7 +337,6 @@ export default function ProductPage() {
         packing_size_id: Number(detailForm.packing_size_id),
         qty_per_box: Number(detailForm.qty_per_box),
         rate_per_unit: detailForm.wholesale_price === '' ? null : Number(detailForm.wholesale_price),
-        retail_price: Number(detailForm.retail_price),
         mrp: Number(detailForm.mrp),
       }
       if (editingDetailId) {
@@ -415,7 +409,6 @@ export default function ProductPage() {
               <th className="px-5 py-3 font-medium">HSN Code</th>
               <th className="px-5 py-3 font-medium">GST %</th>
               <th className="px-5 py-3 text-right font-medium">MRP</th>
-              <th className="px-5 py-3 text-right font-medium">Retail Price</th>
               <th className="px-5 py-3 font-medium">Status</th>
               <th className="px-5 py-3 text-right font-medium">Actions</th>
             </tr>
@@ -461,14 +454,7 @@ export default function ProductPage() {
                           formatCurrency(product.mrp_amount)
                         )}
                       </td>
-                      <td className="px-5 py-3.5 text-right tabular-nums">
-                        {product.retail_price_amount == null ? (
-                          <span className="text-slate-300">—</span>
-                        ) : (
-                          formatCurrency(product.retail_price_amount)
-                        )}
-                      </td>
-                                            <td className="px-5 py-3.5">
+                      <td className="px-5 py-3.5">
                         <ToggleSwitch checked={product.active} onChange={(v) => handleToggleActive(product, v)} />
                       </td>
                       <td className="px-5 py-3.5">
@@ -739,7 +725,7 @@ export default function ProductPage() {
               </div>
             </FormRow>
 
-            <FormRow cols={4}>
+            <FormRow cols={3}>
               <div>
                 <FieldLabel required>Qty per Box</FieldLabel>
                 <TextInput
@@ -769,17 +755,6 @@ export default function ProductPage() {
                   min="0"
                   value={detailForm.wholesale_price}
                   onChange={(e) => setDetailForm({ ...detailForm, wholesale_price: e.target.value })}
-                />
-              </div>
-              <div>
-                <FieldLabel required>Retail Price (INR)</FieldLabel>
-                <TextInput
-                  required
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={detailForm.retail_price}
-                  onChange={(e) => setDetailForm({ ...detailForm, retail_price: e.target.value })}
                 />
               </div>
             </FormRow>
@@ -863,7 +838,6 @@ export default function ProductPage() {
                 } 
               />
               <ViewField label="MRP" value={viewingProduct.mrp_amount ? formatCurrency(viewingProduct.mrp_amount) : '—'} />
-              <ViewField label="Retail Price" value={viewingProduct.retail_price_amount ? formatCurrency(viewingProduct.retail_price_amount) : '—'} />
             </ViewCard>
 
             <ViewCard title="Description">

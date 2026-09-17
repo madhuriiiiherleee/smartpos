@@ -33,7 +33,7 @@ function AppShell() {
   const { user } = useAuth()
 
   return (
-    <div className="min-h-screen bg-brand-50">
+    <div className="flex min-h-screen flex-col bg-brand-50">
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <div className="flex h-16 items-center gap-3 border-b border-brand-200 bg-white px-4 shadow-sm lg:pl-64 print:hidden">
@@ -56,7 +56,7 @@ function AppShell() {
         </div>
       </div>
 
-      <div className="lg:pl-64 print:pl-0">
+      <div className="lg:pl-64 print:pl-0 grow">
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/purchase/manage" element={<ManagePurchasePage />} />
@@ -87,6 +87,10 @@ function AppShell() {
           <Route path="/master-settings/financial-years" element={<FinancialYearPage />} />
         </Routes>
       </div>
+
+      <footer className="border-t border-brand-200 px-4 py-4 text-center text-xs text-slate-500 lg:pl-64 print:hidden">
+        Copyright © 2026 — smartPOS &middot; Powered By D-apps.in, Kumbashi
+      </footer>
     </div>
   )
 }

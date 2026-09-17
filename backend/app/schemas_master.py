@@ -79,7 +79,6 @@ class ProductRead(ProductBase):
     id: int
     category_name: str | None = None
     wholesale_price: float | None = None
-    retail_price_amount: float | None = None
     mrp_amount: float | None = None
     pack_size_count: int = 0
 
@@ -95,8 +94,7 @@ class ProductWithDetailCreate(BaseModel):
     active: bool = True
     packing_size_id: int
     qty_per_box: int
-    rate_per_unit: float
-    retail_price: float
+    rate_per_unit: float | None = None
     mrp: float
 
 
@@ -109,7 +107,6 @@ class ProductDetailBase(BaseModel):
     packing_size_id: int
     qty_per_box: int
     rate_per_unit: float
-    retail_price: float
     mrp: float
 
 

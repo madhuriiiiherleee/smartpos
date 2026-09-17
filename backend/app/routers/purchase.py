@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Purchase, PurchaseItem
-from app.numbering import resolve_financial_year
+from app.numbering import active_financial_year_id, resolve_financial_year
 from app.schemas_purchase import (
     PurchaseCreate,
     PurchaseItemRead,
@@ -133,6 +133,10 @@ def list_purchases(
     # with no supplier/line items) — the Dashboard's own aggregate total is a
     # separate query and is intentionally unaffected by this filter.
     stmt = select(Purchase).where(Purchase.supplier_id.isnot(None))
+    if not date_from and not date_to:
+        fy_id = active_financial_year_id(db)
+        if fy_id is not None:
+            stmt = stmt.where(Purchase.financial_year_id == fy_id)
     if date_from:
         stmt = stmt.where(Purchase.purchase_date >= date_from)
     if date_to:

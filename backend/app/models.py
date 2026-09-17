@@ -68,7 +68,7 @@ class ProductDetail(Base):
     packing_size_id: Mapped[int] = mapped_column(ForeignKey("packing_sizes.id"))
     qty_per_box: Mapped[int] = mapped_column(Integer)
     rate_per_unit: Mapped[float] = mapped_column(Numeric(12, 2))
-    retail_price: Mapped[float] = mapped_column(Numeric(12, 2))
+    retail_price: Mapped[float] = mapped_column(Numeric(12, 2), default=0)
     mrp: Mapped[float] = mapped_column(Numeric(12, 2))
 
     product: Mapped["Product"] = relationship(back_populates="details")

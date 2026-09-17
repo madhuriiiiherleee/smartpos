@@ -7,13 +7,12 @@ const EMPTY_PRODUCT = {
   code: '',
   name: '',
   description: '',
-  hsn_code: '',
+  hsn_code: '21050000',
   cgst_percent: '',
   sgst_percent: '',
   packing_size_id: '',
   qty_per_box: '',
   wholesale_price: '',
-  retail_price: '',
   mrp: '',
 }
 
@@ -49,7 +48,6 @@ export default function AddProductForm({
         packing_size_id: Number(form.packing_size_id),
         qty_per_box: Number(form.qty_per_box),
         rate_per_unit: form.wholesale_price === '' ? null : Number(form.wholesale_price),
-        retail_price: Number(form.retail_price),
         mrp: Number(form.mrp),
       })
     } catch (err) {
@@ -137,7 +135,7 @@ export default function AddProductForm({
         </div>
       </FormRow>
 
-      <FormRow cols={2}>
+      <FormRow cols={1}>
         <div>
           <FieldLabel required>MRP (INR)</FieldLabel>
           <TextInput
@@ -147,31 +145,6 @@ export default function AddProductForm({
             min="0"
             value={form.mrp}
             onChange={(e) => update({ mrp: e.target.value })}
-          />
-        </div>
-        {/* Commented out: Wholesale / TCD Price not needed
-        {showWholesale && (
-          <div>
-            <FieldLabel>Wholesale / TCD Price (INR)</FieldLabel>
-            <TextInput
-              type="number"
-              step="0.01"
-              min="0"
-              value={form.wholesale_price}
-              onChange={(e) => update({ wholesale_price: e.target.value })}
-            />
-          </div>
-        )}
-        */}
-        <div>
-          <FieldLabel required>Retail Price (INR)</FieldLabel>
-          <TextInput
-            required
-            type="number"
-            step="0.01"
-            min="0"
-            value={form.retail_price}
-            onChange={(e) => update({ retail_price: e.target.value })}
           />
         </div>
       </FormRow>

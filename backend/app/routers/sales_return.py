@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Sale, SaleItem, SalesReturn, SalesReturnItem
-from app.numbering import reserve_next_number, resolve_financial_year
+from app.numbering import active_financial_year_id, reserve_next_number, resolve_financial_year
 from app.schemas_sales import (
     ReturnableItem,
     SalesReturnCreate,
@@ -90,6 +90,10 @@ def list_sales_returns(
     db: Session = Depends(get_db),
 ):
     stmt = select(SalesReturn)
+    if not date_from and not date_to:
+        fy_id = active_financial_year_id(db)
+        if fy_id is not None:
+            stmt = stmt.where(SalesReturn.financial_year_id == fy_id)
     if date_from:
         stmt = stmt.where(SalesReturn.return_date >= date_from)
     if date_to:

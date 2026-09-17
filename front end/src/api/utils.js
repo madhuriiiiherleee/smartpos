@@ -7,5 +7,15 @@ export function buildParams(params = {}) {
 }
 
 export function extractErrorMessage(error) {
-  return error?.response?.data?.detail || 'Something went wrong. Please try again.'
+  const detail = error?.response?.data?.detail
+  if (typeof detail === 'string') return detail
+  if (Array.isArray(detail) && detail.length > 0) {
+    return detail
+      .map((d) => {
+        const field = Array.isArray(d.loc) ? d.loc.join('.') : d.loc
+        return `${field}: ${d.msg}`
+      })
+      .join('; ')
+  }
+  return 'Something went wrong. Please try again.'
 }

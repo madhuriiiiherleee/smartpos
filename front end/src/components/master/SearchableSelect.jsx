@@ -67,7 +67,7 @@ export default function SearchableSelect({ value, onChange, options, placeholder
       </div>
 
       {open && !disabled && (
-        <div className="absolute z-20 mt-1 max-h-60 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
+        <div className="absolute z-20 mt-1 max-h-96 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
           {filtered.length === 0 && <p className="px-3 py-2 text-sm text-slate-400">No matches found.</p>}
           {filtered.map((option) => (
             <button

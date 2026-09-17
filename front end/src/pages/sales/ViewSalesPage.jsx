@@ -149,7 +149,10 @@ export default function ViewSalesPage() {
 
   return (
     <div className={printSize === 'A5' ? 'invoice-print-a5' : 'invoice-print-a4'}>
-      <h1 className="hidden px-1 pb-3 text-lg font-semibold text-slate-800 print:block uppercase tracking-wide">Sales Invoices</h1>
+      <div className="hidden items-baseline justify-between border-b border-slate-200 px-1 pb-3 print:flex">
+        <h1 className="text-lg font-semibold uppercase tracking-wide text-slate-800">Sales Invoices</h1>
+        <p className="text-xs text-slate-500">Printed on: {formatDDMMYYYY(new Date().toISOString().slice(0, 10))}</p>
+      </div>
 
       <main className="space-y-4 px-6 py-6 print:space-y-0 print:p-[12mm]">
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between print:hidden">

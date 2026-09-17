@@ -27,6 +27,8 @@ function LockedLabel({ children }) {
   )
 }
 
+const round3 = (n) => Number(Number(n).toFixed(3))
+
 const BASE_EMPTY = {
   barcode: '',
   category_id: '',
@@ -88,8 +90,8 @@ export default function ItemForm({
       category_id: productBeingEdited ? String(productBeingEdited.category_id) : '',
       product_id: String(editingItem.product_id),
       product_detail_id: editingItem.product_detail_id != null ? String(editingItem.product_detail_id) : '',
-      boxes: '0',
-      looseUnits: String(editingItem.quantity ?? 0),
+      boxes: editingItem.boxes != null ? String(editingItem.boxes) : '0',
+      looseUnits: editingItem.looseUnits != null ? String(editingItem.looseUnits) : String(editingItem.quantity ?? 0),
       uom: editingItem.uom || 'UNIT',
       price_inc_gst: editingItem.price_inc_gst ?? true,
       discount_percent: String(editingItem.discount_percent ?? 0),
@@ -118,6 +120,15 @@ export default function ItemForm({
     if (!editingItem) return
     const detail = productDetails.find((d) => d.id === Number(form.product_detail_id))
     if (!detail) return
+    
+    if (editingItem.boxes != null && editingItem.looseUnits != null) {
+      setForm((f) => {
+        if (f.boxes === String(editingItem.boxes) && f.looseUnits === String(editingItem.looseUnits)) return f
+        return { ...f, boxes: String(editingItem.boxes), looseUnits: String(editingItem.looseUnits) }
+      })
+      return
+    }
+
     const qpb = detail.qty_per_box || 1
     const qty = editingItem.quantity ?? 0
     const boxes = Math.floor(qty / qpb)
@@ -163,7 +174,7 @@ export default function ItemForm({
           return {
             ...f,
             product_detail_id: String(first.id),
-            [priceFieldName]: String(first.rate_per_unit / first.qty_per_box),
+            [priceFieldName]: String(round3(first.rate_per_unit / first.qty_per_box)),
           }
         }
         return { ...f, product_detail_id: String(first.id) }
@@ -259,6 +270,7 @@ export default function ItemForm({
       product_id: value,
       category_id: product?.category_id != null ? String(product.category_id) : f.category_id,
       product_detail_id: '',
+      ...(value !== f.product_id ? { boxes: '0', looseUnits: '0' } : {}),
     }))
   }
 
@@ -268,7 +280,7 @@ export default function ItemForm({
       ...f,
       product_detail_id: value,
       ...(autoFillPriceOnDetailChange && detail
-        ? { [priceFieldName]: String(detail.rate_per_unit / detail.qty_per_box) }
+        ? { [priceFieldName]: String(round3(detail.rate_per_unit / detail.qty_per_box)) }
         : {}),
     }))
   }
@@ -291,7 +303,7 @@ export default function ItemForm({
         ? String(Number(product.cgst_percent) + Number(product.sgst_percent))
         : null
     const pricePatch = autoFillPriceOnDetailChange
-      ? { [priceFieldName]: String(match.rate_per_unit / match.qty_per_box) }
+      ? { [priceFieldName]: String(round3(match.rate_per_unit / match.qty_per_box)) }
       : {}
     setForm((f) => ({
       ...f,
@@ -323,6 +335,8 @@ export default function ItemForm({
       product_name: product?.name,
       code: detail?.code,
       quantity,
+      boxes: Number(form.boxes) || 0,
+      looseUnits: Number(form.looseUnits) || 0,
       free_quantity: 0,
       uom: form.uom,
       [priceFieldName]: price,
@@ -359,8 +373,8 @@ export default function ItemForm({
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl bg-brand-50/50 shadow-sm ring-1 ring-slate-900/5">
-      <div className="flex items-center justify-between border-b border-brand-100 bg-brand-50 px-5 py-3">
+    <div className="rounded-2xl bg-brand-50/50 shadow-sm ring-1 ring-slate-900/5">
+      <div className="flex items-center justify-between rounded-t-2xl border-b border-brand-100 bg-brand-50 px-5 py-3">
         <h3 className="flex items-center gap-2 text-sm font-semibold text-brand-800">
           <Package size={16} strokeWidth={2.25} />
           {isEditing ? 'Edit Product' : 'Add Product'}
@@ -374,7 +388,7 @@ export default function ItemForm({
         </button>
       </div>
 
-      <div className="bg-white p-5">
+      <div className="rounded-b-2xl bg-white p-5">
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 xl:grid-cols-4">
         <div>
           <FieldLabel>Pack Code</FieldLabel>

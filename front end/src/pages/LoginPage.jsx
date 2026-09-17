@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import logo from '../assets/logo.webp'
+import loginBg from '../assets/login-bg.jpg'
 
 export default function LoginPage() {
   const { user, loading, login } = useAuth()
@@ -31,8 +32,13 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-      <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg ring-1 ring-brand-600/5">
+    <div
+      className="relative flex min-h-screen flex-col overflow-hidden bg-cover bg-center px-4"
+      style={{ backgroundImage: `url(${loginBg})` }}
+    >
+      <div className="absolute inset-0 bg-brand-950/20 backdrop-blur-md" />
+      <div className="relative flex flex-1 items-center justify-center">
+        <div className="w-full max-w-sm overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg ring-1 ring-brand-600/5">
         <div className="p-8">
           <div className="mb-6 flex justify-center">
             <img src={logo} alt="smartPOS" className="h-9 w-auto" />
@@ -80,7 +86,13 @@ export default function LoginPage() {
             </button>
           </form>
         </div>
+        </div>
       </div>
+      <p className="relative py-4 text-center text-xs font-medium text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.6)]">
+        Copyright © 2026 — smartPOS
+        <br />
+        Powered By D-apps.in, Kumbashi
+      </p>
     </div>
   )
 }

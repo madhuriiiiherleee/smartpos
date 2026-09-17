@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.database import get_db
 from app.models import Customer, ProductDetail, PurchaseItem, Sale, SaleItem, SalesReturn, SalesReturnItem
-from app.numbering import peek_next_number, reserve_next_number, resolve_financial_year
+from app.numbering import active_financial_year_id, peek_next_number, reserve_next_number, resolve_financial_year
 from app.schemas_sales import (
     AvailableQuantityResponse,
     DeliveryListItem,
@@ -199,7 +199,6 @@ def _sale_item_read(db: Session, item: SaleItem) -> SaleItemRead:
     data.code = item.product_detail.code if item.product_detail else None
     data.packing_size = item.product_detail.packing_size_ref.label if item.product_detail else None
     data.qty_per_box = item.product_detail.qty_per_box if item.product_detail else None
-    data.retail_price = float(item.product_detail.retail_price) if item.product_detail else None
     data.returned_quantity = db.execute(
         select(func.coalesce(func.sum(SalesReturnItem.quantity), 0)).where(
             SalesReturnItem.sale_item_id == item.id
@@ -274,6 +273,13 @@ def list_sales(
     # with no customer/line items) — the Dashboard's own aggregate total is a
     # separate query and is intentionally unaffected by this filter.
     stmt = select(Sale).where(Sale.customer_id.isnot(None))
+    # The active financial year is the default data context: with no explicit
+    # date range the list shows that FY's records. An explicit date range is
+    # an override and allows browsing other years.
+    if not date_from and not date_to:
+        fy_id = active_financial_year_id(db)
+        if fy_id is not None:
+            stmt = stmt.where(Sale.financial_year_id == fy_id)
     if date_from:
         stmt = stmt.where(Sale.sale_date >= date_from)
     if date_to:
@@ -312,6 +318,9 @@ def list_delivery(
     db: Session = Depends(get_db),
 ):
     stmt = select(Sale).where(Sale.customer_id.isnot(None))
+    fy_id = active_financial_year_id(db)
+    if fy_id is not None:
+        stmt = stmt.where(Sale.financial_year_id == fy_id)
     if route:
         stmt = stmt.where(Sale.route == route)
     if delivery_status:
