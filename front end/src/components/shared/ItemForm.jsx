@@ -166,18 +166,21 @@ export default function ItemForm({
     productDetailsApi.list({ product_id: form.product_id }).then((details) => {
       setProductDetails(details)
       setForm((f) => {
-        const stillValid = details.some((d) => String(d.id) === f.product_detail_id)
-        if (stillValid) return f
+        const stillValidDetail = details.find((d) => String(d.id) === f.product_detail_id)
+        if (stillValidDetail) return syncBarcodeToCode(f, stillValidDetail.code)
         const first = details[0]
-        if (!first) return { ...f, product_detail_id: '' }
+        if (!first) return { ...f, product_detail_id: '', barcode: '' }
         if (autoFillPriceOnDetailChange) {
-          return {
-            ...f,
-            product_detail_id: String(first.id),
-            [priceFieldName]: String(round3(first.rate_per_unit / first.qty_per_box)),
-          }
+          return syncBarcodeToCode(
+            {
+              ...f,
+              product_detail_id: String(first.id),
+              [priceFieldName]: String(round3(first.mrp / first.qty_per_box)),
+            },
+            first.code,
+          )
         }
-        return { ...f, product_detail_id: String(first.id) }
+        return syncBarcodeToCode({ ...f, product_detail_id: String(first.id) }, first.code)
       })
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -276,13 +279,28 @@ export default function ItemForm({
 
   function handleDetailChange(value) {
     const detail = productDetails.find((d) => d.id === Number(value))
-    setForm((f) => ({
-      ...f,
-      product_detail_id: value,
-      ...(autoFillPriceOnDetailChange && detail
-        ? { [priceFieldName]: String(round3(detail.rate_per_unit / detail.qty_per_box)) }
-        : {}),
-    }))
+    setForm((f) =>
+      syncBarcodeToCode(
+        {
+          ...f,
+          product_detail_id: value,
+          ...(autoFillPriceOnDetailChange && detail
+            ? { [priceFieldName]: String(round3(detail.mrp / detail.qty_per_box)) }
+            : {}),
+        },
+        detail?.code,
+      ),
+    )
+  }
+
+  // Keeps the scan/lookup "Pack Code" field showing the code of whatever pack
+  // is actually selected via the Category/Product/Pack Code dropdowns, and
+  // marks that code as already looked up so it doesn't re-trigger a barcode
+  // lookup against itself.
+  function syncBarcodeToCode(f, code) {
+    if (code == null) return f
+    lastLookedUpBarcodeRef.current = code
+    return { ...f, barcode: code }
   }
 
   async function handleBarcodeLookup(currentForm = form) {
@@ -303,7 +321,7 @@ export default function ItemForm({
         ? String(Number(product.cgst_percent) + Number(product.sgst_percent))
         : null
     const pricePatch = autoFillPriceOnDetailChange
-      ? { [priceFieldName]: String(round3(match.rate_per_unit / match.qty_per_box)) }
+      ? { [priceFieldName]: String(round3(match.mrp / match.qty_per_box)) }
       : {}
     setForm((f) => ({
       ...f,

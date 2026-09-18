@@ -12,7 +12,6 @@ const EMPTY_PRODUCT = {
   sgst_percent: '',
   packing_size_id: '',
   qty_per_box: '',
-  wholesale_price: '',
   mrp: '',
 }
 
@@ -23,7 +22,6 @@ export default function AddProductForm({
   initial = {},
   onSubmit,
   onSavingChange,
-  // showWholesale = true,
 }) {
   const [form, setForm] = useState({
     ...EMPTY_PRODUCT,
@@ -47,7 +45,6 @@ export default function AddProductForm({
         sgst_percent: form.sgst_percent === '' ? null : Number(form.sgst_percent),
         packing_size_id: Number(form.packing_size_id),
         qty_per_box: Number(form.qty_per_box),
-        rate_per_unit: form.wholesale_price === '' ? null : Number(form.wholesale_price),
         mrp: Number(form.mrp),
       })
     } catch (err) {

@@ -89,7 +89,7 @@ function AppShell() {
       </div>
 
       <footer className="border-t border-brand-200 px-4 py-4 text-center text-xs text-slate-500 lg:pl-64 print:hidden">
-        Copyright © 2026 — smartPOS &middot; Powered By D-apps.in, Kumbashi
+        © 2026 SmartPOS &middot; Powered by D-apps.in, Kumbashi
       </footer>
     </div>
   )

@@ -89,9 +89,9 @@ export default function LoginPage() {
         </div>
       </div>
       <p className="relative py-4 text-center text-xs font-medium text-white [text-shadow:0_1px_3px_rgba(0,0,0,0.6)]">
-        Copyright © 2026 — smartPOS
+        © 2026 SmartPOS
         <br />
-        Powered By D-apps.in, Kumbashi
+        Powered by D-apps.in, Kumbashi
       </p>
     </div>
   )

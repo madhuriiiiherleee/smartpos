@@ -22,7 +22,6 @@ const EMPTY_PRODUCT_FORM = {
   sgst_percent: '',
   packing_size_id: '',
   qty_per_box: '',
-  wholesale_price: '',
   mrp: '',
 }
 
@@ -40,7 +39,6 @@ function PackSizesTable({ details, loading, onEdit }) {
             <th className="px-4 py-2 font-medium">Packing Size</th>
             <th className="px-4 py-2 text-right font-medium">Qty / Box</th>
             <th className="px-4 py-2 text-right font-medium">MRP</th>
-            <th className="px-4 py-2 text-right font-medium">Wholesale</th>
             {onEdit && <th className="px-4 py-2 text-right font-medium">Actions</th>}
           </tr>
         </thead>
@@ -51,7 +49,6 @@ function PackSizesTable({ details, loading, onEdit }) {
               <td className="px-4 py-2.5">{detail.packing_size}</td>
               <td className="px-4 py-2.5 text-right tabular-nums">{detail.qty_per_box}</td>
               <td className="px-4 py-2.5 text-right tabular-nums">{formatCurrency(detail.mrp)}</td>
-              <td className="px-4 py-2.5 text-right tabular-nums">{formatCurrency(detail.rate_per_unit)}</td>
               {onEdit && (
                 <td className="px-4 py-2.5 text-right">
                   <button
@@ -77,7 +74,6 @@ const EMPTY_DETAIL_FORM = {
   code: '',
   packing_size_id: '',
   qty_per_box: '',
-  wholesale_price: '',
   mrp: '',
 }
 
@@ -311,7 +307,6 @@ export default function ProductPage() {
       code: detail.code,
       packing_size_id: detail.packing_size_id,
       qty_per_box: detail.qty_per_box,
-      wholesale_price: detail.rate_per_unit ?? '',
       mrp: detail.mrp,
     })
     setEditingDetailPackingSize({ id: detail.packing_size_id, label: detail.packing_size, active: true })
@@ -336,7 +331,6 @@ export default function ProductPage() {
         product_id: productId,
         packing_size_id: Number(detailForm.packing_size_id),
         qty_per_box: Number(detailForm.qty_per_box),
-        rate_per_unit: detailForm.wholesale_price === '' ? null : Number(detailForm.wholesale_price),
         mrp: Number(detailForm.mrp),
       }
       if (editingDetailId) {
@@ -647,7 +641,6 @@ export default function ProductPage() {
             packingSizes={packingSizes}
             onSubmit={handleProductCreate}
             onSavingChange={setSavingProduct}
-            // showWholesale
           />
         )}
         </Modal>
@@ -725,7 +718,7 @@ export default function ProductPage() {
               </div>
             </FormRow>
 
-            <FormRow cols={3}>
+            <FormRow cols={2}>
               <div>
                 <FieldLabel required>Qty per Box</FieldLabel>
                 <TextInput
@@ -745,16 +738,6 @@ export default function ProductPage() {
                   min="0"
                   value={detailForm.mrp}
                   onChange={(e) => setDetailForm({ ...detailForm, mrp: e.target.value })}
-                />
-              </div>
-              <div>
-                <FieldLabel>Wholesale / TCD Price (INR)</FieldLabel>
-                <TextInput
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={detailForm.wholesale_price}
-                  onChange={(e) => setDetailForm({ ...detailForm, wholesale_price: e.target.value })}
                 />
               </div>
             </FormRow>
