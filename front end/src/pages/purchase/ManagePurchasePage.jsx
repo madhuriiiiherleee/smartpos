@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, Eye, Pencil, Plus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Eye, Pencil, Plus, Trash2 } from 'lucide-react'
 import { vendorsApi } from '../../api/master'
-import { purchasesApi } from '../../api/purchase'
+import { extractErrorMessage, purchasesApi } from '../../api/purchase'
 import { companyProfileApi } from '../../api/company'
 import { FieldLabel, Select, TextInput } from '../../components/master/FormField'
 import Modal from '../../components/master/Modal'
 import PurchaseInvoiceBody from '../../components/purchase/PurchaseInvoiceBody'
+import ConfirmDialog from '../../components/shared/ConfirmDialog'
 import { formatCurrency, formatDDMMYYYY } from '../../lib/format'
 
 const PAGE_SIZE = 10
@@ -26,6 +27,10 @@ export default function ManagePurchasePage() {
   const [company, setCompany] = useState(null)
   const [viewOpen, setViewOpen] = useState(false)
   const [viewing, setViewing] = useState(null)
+
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [deleting, setDeleting] = useState(false)
+  const [listError, setListError] = useState(null)
 
   useEffect(() => {
     vendorsApi.list({ active: true }).then((data) => {
@@ -49,6 +54,41 @@ export default function ManagePurchasePage() {
   function closeView() {
     setViewOpen(false)
     setViewing(null)
+  }
+
+  function handleDelete(purchase) {
+    setListError(null)
+    setDeleteTarget(purchase)
+  }
+
+  async function confirmDelete() {
+    if (!deleteTarget) return
+    const purchase = deleteTarget
+    setDeleteTarget(null)
+    setDeleting(true)
+    setListError(null)
+    try {
+      await purchasesApi.remove(purchase.id)
+      const data = await purchasesApi.list({
+        date_from: appliedFilters.dateFrom,
+        date_to: appliedFilters.dateTo,
+        supplier_id: appliedFilters.supplierId,
+        page,
+        page_size: PAGE_SIZE,
+      })
+      // The deleted row may have been the last one on the final page — step back
+      // so the list doesn't sit empty on a page that no longer exists.
+      const maxPage = Math.max(1, Math.ceil(data.total / PAGE_SIZE))
+      if (page > maxPage) {
+        setPage(maxPage)
+      } else {
+        setResult(data)
+      }
+    } catch (err) {
+      setListError(extractErrorMessage(err))
+    } finally {
+      setDeleting(false)
+    }
   }
 
   async function load() {
@@ -95,6 +135,10 @@ export default function ManagePurchasePage() {
           </Link>
         </div>
 
+        {listError && (
+          <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">{listError}</div>
+        )}
+
         <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-900/5">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
             <div>
@@ -124,7 +168,7 @@ export default function ManagePurchasePage() {
           <table className="w-full border-collapse text-left text-sm">
             <thead>
               <tr className="bg-brand-600 text-xs uppercase tracking-wide text-white">
-                <th className="px-5 py-3 font-medium">Invoice #</th>
+                <th className="px-5 py-3 font-medium">Vendor Invoice #</th>
                 <th className="px-5 py-3 font-medium">Invoice Date</th>
                 <th className="px-5 py-3 font-medium">Vendor Name</th>
                 <th className="px-5 py-3 text-right font-medium">Invoice Amount</th>
@@ -173,6 +217,14 @@ export default function ManagePurchasePage() {
                         >
                           <Pencil size={14} /> Edit
                         </Link>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(p)}
+                          aria-label={`Delete ${p.invoice_no}`}
+                          className="inline-flex items-center gap-1.5 rounded-md bg-rose-50 px-2.5 py-1.5 text-xs font-medium text-rose-700 transition hover:bg-rose-100"
+                        >
+                          <Trash2 size={14} /> Delete
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -231,6 +283,19 @@ export default function ManagePurchasePage() {
           )}
         </Modal>
       )}
+
+      <ConfirmDialog
+        open={deleteTarget != null}
+        title="Delete Purchase?"
+        message={
+          deleteTarget
+            ? `Are you sure you want to delete purchase "${deleteTarget.invoice_no}"? The purchased units will be removed from stock. This action cannot be undone.`
+            : ''
+        }
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+        busy={deleting}
+      />
     </div>
   )
 }

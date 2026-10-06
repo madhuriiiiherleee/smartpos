@@ -133,8 +133,6 @@ def seed_master_data(db):
                 code=f"SKU-{code}",
                 packing_size_id=unit_packing_size.id,
                 qty_per_box=random.choice([12, 24, 48]),
-                rate_per_unit=round(random.uniform(50, 500), 2),
-                retail_price=round(random.uniform(500, 1500), 2),
                 mrp=round(random.uniform(1500, 2500), 2),
             )
         )

@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Purchase, PurchaseItem
+from app.models import ProductDetail, Purchase, PurchaseItem
 from app.numbering import active_financial_year_id, resolve_financial_year
 from app.schemas_purchase import (
     PurchaseCreate,
@@ -23,11 +23,28 @@ router = APIRouter(prefix="/api/purchases", tags=["purchases"])
 # ---------------- Purchase CRUD ----------------
 
 
-def _build_items(payload_items) -> tuple[list[PurchaseItem], float, float, float]:
+def _qty_per_box(db: Session, product_detail_id: int | None) -> int:
+    if not product_detail_id:
+        return 1
+    detail = db.get(ProductDetail, product_detail_id)
+    if not detail or not detail.qty_per_box:
+        return 1
+    return int(detail.qty_per_box)
+
+
+def _build_items(db: Session, payload_items) -> tuple[list[PurchaseItem], float, float, float]:
+    """Build purchase line items.
+
+    `quantity` is always in pieces (stock ledger). `purchase_price` is the
+    price per box as entered on Purchase Entry — so 9 boxes at ₹100 = ₹900,
+    regardless of how many pieces are in each box.
+    """
     rows: list[PurchaseItem] = []
     taxable_total = gst_total = grand_total = 0.0
     for item in payload_items:
-        gross = item.quantity * item.purchase_price
+        qpb = _qty_per_box(db, item.product_detail_id)
+        box_count = item.quantity / qpb
+        gross = box_count * item.purchase_price
         net = gross * (1 - item.discount_percent / 100)
         if item.price_inc_gst:
             taxable = net / (1 + item.gst_percent / 100)
@@ -89,7 +106,7 @@ def _purchase_read(purchase: Purchase) -> PurchaseRead:
 @router.post("", response_model=PurchaseRead, status_code=201)
 def create_purchase(payload: PurchaseCreate, db: Session = Depends(get_db)):
     financial_year = resolve_financial_year(db, payload.invoice_date)
-    items, taxable_total, gst_total, grand_total = _build_items(payload.items)
+    items, taxable_total, gst_total, grand_total = _build_items(db, payload.items)
     final_amount = round(grand_total - payload.discount + payload.tcs + payload.round_off, 2)
 
     purchase = Purchase(
@@ -192,7 +209,7 @@ def update_purchase(purchase_id: int, payload: PurchaseUpdate, db: Session = Dep
     discount = payload.discount if "discount" in provided else float(purchase.discount)
     tcs = payload.tcs if "tcs" in provided else float(purchase.tcs)
 
-    items, taxable_total, gst_total, grand_total = _build_items(payload.items)
+    items, taxable_total, gst_total, grand_total = _build_items(db, payload.items)
     final_amount = round(grand_total - discount + tcs + payload.round_off, 2)
     financial_year = resolve_financial_year(db, payload.invoice_date)
 
@@ -219,3 +236,24 @@ def update_purchase(purchase_id: int, payload: PurchaseUpdate, db: Session = Dep
         ) from exc
     db.refresh(purchase)
     return _purchase_read(purchase)
+
+
+@router.delete("/{purchase_id}", status_code=204)
+def delete_purchase(purchase_id: int, db: Session = Depends(get_db)):
+    purchase = db.get(Purchase, purchase_id)
+    if not purchase:
+        raise HTTPException(status_code=404, detail="Purchase not found")
+
+    # Line items go with the header via the cascade on Purchase.items. Stock is a
+    # live sum over purchase_items, so it corrects itself on the next read — which
+    # is the point: a mistyped or duplicate supplier invoice should be removable
+    # rather than a permanent inflation of the stock ledger.
+    try:
+        db.delete(purchase)
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=409,
+            detail="This purchase is referenced elsewhere and cannot be deleted.",
+        ) from exc

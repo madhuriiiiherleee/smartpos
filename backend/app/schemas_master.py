@@ -78,7 +78,6 @@ class ProductRead(ProductBase):
     model_config = ConfigDict(from_attributes=True)
     id: int
     category_name: str | None = None
-    wholesale_price: float | None = None
     mrp_amount: float | None = None
     pack_size_count: int = 0
 
@@ -94,7 +93,6 @@ class ProductWithDetailCreate(BaseModel):
     active: bool = True
     packing_size_id: int
     qty_per_box: int
-    rate_per_unit: float | None = None
     mrp: float
 
 
@@ -106,7 +104,6 @@ class ProductDetailBase(BaseModel):
     code: str
     packing_size_id: int
     qty_per_box: int
-    rate_per_unit: float
     mrp: float
 
 

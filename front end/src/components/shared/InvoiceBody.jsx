@@ -14,6 +14,8 @@ export default function InvoiceBody({
   showDiscount = false,
   extraTotalsRows = [],
   declaration = null,
+  invoiceLabel = 'Invoice #',
+  pricePerBox = false,
 }) {
   return (
     <div className="invoice-body flex min-h-screen flex-col rounded-2xl bg-white print:rounded-none">
@@ -28,7 +30,7 @@ export default function InvoiceBody({
         </div>
         <div className="text-right">
           <h2 className="text-sm font-semibold text-slate-700">{title}</h2>
-          <p className="text-xs text-slate-500">Invoice #: {doc.invoice_no}</p>
+          <p className="text-xs text-slate-500">{invoiceLabel}: {doc.invoice_no}</p>
           <p className="text-xs text-slate-500">Date: {dateText}</p>
         </div>
       </div>
@@ -62,7 +64,7 @@ export default function InvoiceBody({
               <th className="py-2 font-medium">Product</th>
               <th className="py-2 font-medium">HSN</th>
               <th className="py-2 text-right font-medium">Qty</th>
-              <th className="py-2 text-right font-medium">Price</th>
+              <th className="py-2 text-right font-medium">{pricePerBox ? 'Price / Box' : 'Price'}</th>
               {showDiscount && <th className="py-2 text-right font-medium">Discount</th>}
               <th className="py-2 text-right font-medium">Taxable</th>
               <th className="py-2 text-right font-medium">GST Value</th>
@@ -79,11 +81,21 @@ export default function InvoiceBody({
                 </td>
                 <td className="py-2 text-slate-500">{item.hsn_code || <span className="text-slate-300">—</span>}</td>
                 <td className="py-2 text-right tabular-nums">
-                  {item.quantity} pcs
-                  {formatBoxBreakdown(item.quantity, item.qty_per_box) && (
-                    <div className="text-[10px] font-normal text-slate-400">
-                      ({formatBoxBreakdown(item.quantity, item.qty_per_box)})
-                    </div>
+                  {pricePerBox && item.qty_per_box ? (
+                    <>
+                      {formatBoxBreakdown(item.quantity, item.qty_per_box) ||
+                        `${Math.floor(item.quantity / (item.qty_per_box || 1))} box`}
+                      <div className="text-[10px] font-normal text-slate-400">{item.quantity} pcs</div>
+                    </>
+                  ) : (
+                    <>
+                      {item.quantity} pcs
+                      {formatBoxBreakdown(item.quantity, item.qty_per_box) && (
+                        <div className="text-[10px] font-normal text-slate-400">
+                          ({formatBoxBreakdown(item.quantity, item.qty_per_box)})
+                        </div>
+                      )}
+                    </>
                   )}
                 </td>
                 <td className="py-2 text-right tabular-nums">{formatCurrencyPrecise(item[priceKey])}</td>

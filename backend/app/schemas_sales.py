@@ -233,6 +233,9 @@ class ReturnableItem(BaseModel):
     sold_quantity: int
     already_returned_quantity: int
     returnable_quantity: int
+    # Pieces per box for the pack that was actually sold, so the return screen
+    # can offer box + loose entry without a second lookup.
+    qty_per_box: int = 1
     price: float
     price_inc_gst: bool = False
     discount_percent: float = 0
@@ -243,11 +246,22 @@ class ReturnableItem(BaseModel):
 
 class SalesReturnItemCreate(BaseModel):
     sale_item_id: int
-    quantity: int = Field(gt=0)
+    # Total in pieces. Optional when boxes/loose_units are supplied, since the
+    # server then derives it as boxes * qty_per_box + loose_units.
+    quantity: int | None = Field(default=None, gt=0)
+    boxes: int = Field(default=0, ge=0)
+    loose_units: int = Field(default=0, ge=0)
 
 
 class SalesReturnCreate(BaseModel):
     sale_id: int
+    return_date: date
+    items: list[SalesReturnItemCreate] = Field(min_length=1)
+
+
+class SalesReturnUpdate(BaseModel):
+    # No sale_id: a credit note stays attached to the invoice it was issued
+    # against. To change the invoice, delete this return and raise a new one.
     return_date: date
     items: list[SalesReturnItemCreate] = Field(min_length=1)
 
@@ -259,6 +273,9 @@ class SalesReturnItemRead(BaseModel):
     product_code: str | None = None
     product_name: str | None = None
     quantity: int
+    boxes: int = 0
+    loose_units: int = 0
+    qty_per_box: int = 1
     taxable_amount: float
     gst_amount: float
     grand_amount: float

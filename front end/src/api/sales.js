@@ -36,9 +36,13 @@ export const salesOrdersApi = {
 }
 
 export const salesReturnsApi = {
-  returnableItems: async (saleId) =>
-    (await returnsClient.get('/returnable-items', { params: { sale_id: saleId } })).data,
+  returnableItems: async (saleId, excludeReturnId) =>
+    (await returnsClient.get('/returnable-items', {
+      params: buildParams({ sale_id: saleId, exclude_return_id: excludeReturnId }),
+    })).data,
   create: async (payload) => (await returnsClient.post('', payload)).data,
   list: async (params) => (await returnsClient.get('', { params: buildParams(params) })).data,
   get: async (id) => (await returnsClient.get(`/${id}`)).data,
+  update: async (id, payload) => (await returnsClient.put(`/${id}`, payload)).data,
+  remove: async (id) => (await returnsClient.delete(`/${id}`)).data,
 }

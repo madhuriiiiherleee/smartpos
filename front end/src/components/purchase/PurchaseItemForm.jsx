@@ -8,13 +8,15 @@ export default function PurchaseItemForm({ onAdd, editingItem = null, onUpdate =
       onUpdate={onUpdate}
       onCancelEdit={onCancelEdit}
       priceFieldName="purchase_price"
-      priceLabel="Purchase Price / Piece"
-      priceErrorMsg="Enter a valid Purchase Price / Piece."
+      priceLabel="Price"
+      priceErrorMsg="Enter a valid Price."
       barcodePlaceholder="Scan or type code"
       barcodeNotFoundMsg="No product found for that barcode/code."
-      detailGridCols="xl:grid-cols-8"
+      detailGridCols="xl:grid-cols-7"
       autoFillPriceOnDetailChange
       enableIgst
+      hideLooseUnits
+      pricePerBox
     />
   )
 }

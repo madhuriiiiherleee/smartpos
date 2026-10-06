@@ -48,7 +48,11 @@ export default function ItemsTable({
                 </td>
                 <td className="px-5 py-3.5 text-right tabular-nums">{formatCurrency3(item[priceFieldName])}</td>
                 <td className="px-5 py-3.5 text-right tabular-nums">
-                  {item.quantity} {item.uom || 'pcs'}
+                  {item.boxes != null && item.boxes > 0
+                    ? `${item.boxes} box${item.boxes === 1 ? '' : 'es'}${
+                        item.looseUnits > 0 ? ` + ${item.looseUnits} pcs` : ''
+                      }`
+                    : `${item.quantity} ${item.uom || 'pcs'}`}
                 </td>
                 <td className="px-5 py-3.5 text-right tabular-nums text-slate-500">
                   {item.discount_percent > 0 ? `${item.discount_percent}%` : '—'}

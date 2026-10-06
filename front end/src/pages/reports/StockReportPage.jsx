@@ -5,6 +5,13 @@ import { reportsApi } from '../../api/reports'
 import { FieldLabel, Select } from '../../components/master/FormField'
 import { formatDDMMYYYY } from '../../lib/format'
 
+// e.g. 32 pieces at 8 per box -> "4 BOX 0 PIECE"; negative stock stays as raw pieces
+function formatBoxPiece(quantity, qtyPerBox) {
+  const perBox = qtyPerBox > 0 ? qtyPerBox : 1
+  if (quantity < 0) return `${quantity} PIECE`
+  return `${Math.floor(quantity / perBox)} BOX ${quantity % perBox} PIECE`
+}
+
 export default function StockReportPage() {
   const [categories, setCategories] = useState([])
   const [products, setProducts] = useState([])
@@ -149,7 +156,8 @@ export default function StockReportPage() {
                           r.available_quantity < 0 ? 'text-rose-600' : 'text-slate-700'
                         }`}
                       >
-                        {r.available_quantity}
+                        <div>{formatBoxPiece(r.available_quantity, r.qty_per_box)}</div>
+                        <div className="text-xs font-normal text-slate-400">{r.available_quantity} pieces total</div>
                       </td>
                     </tr>
                   ))}

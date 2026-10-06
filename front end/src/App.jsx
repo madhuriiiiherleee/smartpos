@@ -20,6 +20,7 @@ import PurchaseEntryPage from './pages/purchase/PurchaseEntryPage'
 import PurchaseInvoicePage from './pages/purchase/PurchaseInvoicePage'
 import GstReportPage from './pages/reports/GstReportPage'
 import StockReportPage from './pages/reports/StockReportPage'
+import StockAdjustmentPage from './pages/stock/StockAdjustmentPage'
 import DeliveryListPage from './pages/sales/DeliveryListPage'
 import SalesEntryPage from './pages/sales/SalesEntryPage'
 import SalesInvoicePage from './pages/sales/SalesInvoicePage'
@@ -78,6 +79,7 @@ function AppShell() {
           <Route path="/reports/sales-b2c" element={<GstReportPage reportKey="sales-b2c" />} />
           <Route path="/reports/purchase-gst" element={<GstReportPage reportKey="purchase-gst" />} />
           <Route path="/reports/stock" element={<StockReportPage />} />
+          <Route path="/stock/adjustment" element={<StockAdjustmentPage />} />
           <Route path="/master-settings" element={<Navigate to="/master-settings/categories" replace />} />
           <Route path="/master-settings/categories" element={<CategoryPage />} />
           <Route path="/master-settings/products" element={<ProductPage />} />

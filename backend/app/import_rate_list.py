@@ -4,10 +4,8 @@ data (LED Bulb / Extension Board / Basmati Rice / A4 Copier Paper / Cotton
 Bedsheet and everything that referenced them) and loads the real ice-cream
 rate list (Category -> Product -> ProductDetail).
 
-TCD Rate from the source rate list is stored in ProductDetail.rate_per_unit
-(the field the app already treats as the wholesale/purchase price). The
-sheet's own "Rate Per Unit" (MRP / Qty per Box) column is intentionally not
-imported.
+Only MRP and Qty per Box are stored; wholesale/retail rates are not captured
+(Rate Per Unit is derived as MRP / Qty per Box at sale time).
 
 Run once: python -m app.import_rate_list
 """
@@ -297,8 +295,6 @@ def import_rate_list(db):
                     code=detail_code,
                     packing_size_id=packing_size.id,
                     qty_per_box=qty_box,
-                    rate_per_unit=tcd,
-                    retail_price=retail,
                     mrp=mrp,
                 )
             )

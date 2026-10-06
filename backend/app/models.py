@@ -67,8 +67,6 @@ class ProductDetail(Base):
     code: Mapped[str] = mapped_column(String(30), unique=True)
     packing_size_id: Mapped[int] = mapped_column(ForeignKey("packing_sizes.id"))
     qty_per_box: Mapped[int] = mapped_column(Integer)
-    rate_per_unit: Mapped[float] = mapped_column(Numeric(12, 2))
-    retail_price: Mapped[float] = mapped_column(Numeric(12, 2), default=0)
     mrp: Mapped[float] = mapped_column(Numeric(12, 2))
 
     product: Mapped["Product"] = relationship(back_populates="details")
@@ -344,7 +342,15 @@ class SalesReturnItem(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     sales_return_id: Mapped[int] = mapped_column(ForeignKey("sales_returns.id"))
     sale_item_id: Mapped[int] = mapped_column(ForeignKey("sale_items.id"))
+    # Authoritative total in pieces — this is what stock, pricing and the
+    # returnable cap are all computed from.
     quantity: Mapped[int] = mapped_column(Integer)
+    # Snapshot of how the customer physically handed the goods back, so the
+    # credit note keeps printing "2 boxes" even if the product's pack size is
+    # edited later. Null/0 on rows saved before this existed.
+    boxes: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    loose_units: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    qty_per_box: Mapped[int | None] = mapped_column(Integer, nullable=True)
     taxable_amount: Mapped[float] = mapped_column(Numeric(12, 2))
     gst_amount: Mapped[float] = mapped_column(Numeric(12, 2))
     grand_amount: Mapped[float] = mapped_column(Numeric(12, 2))

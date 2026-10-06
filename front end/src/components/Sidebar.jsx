@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { BarChart3, ChevronDown, LayoutDashboard, Receipt, Settings, ShoppingCart, UserCog } from 'lucide-react'
+import { BarChart3, ChevronDown, ClipboardCheck, LayoutDashboard, Receipt, Settings, ShoppingCart, UserCog } from 'lucide-react'
 import logo from '../assets/logo.webp'
 
 const NAV_ITEMS = [
@@ -16,6 +16,7 @@ const NAV_ITEMS = [
       { label: 'Sales Return', to: '/sales/return' },
     ],
   },
+  { label: 'Stock Adjustment', icon: ClipboardCheck, to: '/stock/adjustment', matchPrefix: '/stock' },
   {
     label: 'Master Settings',
     icon: Settings,

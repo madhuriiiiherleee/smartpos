@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, CornerDownLeft, Eye, Plus, Search } from 'lucide-react'
+import { ChevronLeft, ChevronRight, CornerDownLeft, Eye, Pencil, Plus, Search, Trash2 } from 'lucide-react'
 import { customersApi } from '../../api/master'
 import { extractErrorMessage, salesApi, salesReturnsApi } from '../../api/sales'
 import Modal from '../../components/master/Modal'
@@ -8,13 +8,27 @@ import SearchableSelect from '../../components/master/SearchableSelect'
 import AlertDialog from '../../components/shared/AlertDialog'
 import ConfirmDialog from '../../components/shared/ConfirmDialog'
 import { FieldLabel, TextInput } from '../../components/master/FormField'
-import { formatCurrency3, formatDDMMYYYY, today } from '../../lib/format'
+import { formatBoxBreakdown, formatCurrency3, formatDDMMYYYY, today } from '../../lib/format'
 
 const HISTORY_PAGE_SIZE = 10
 
 function qtyPriceTaxable(item) {
   const gross = Number(item.price) * (1 - (Number(item.discount_percent) || 0) / 100)
   return item.price_inc_gst ? gross / (1 + Number(item.gst_percent) / 100) : gross
+}
+
+// The Returnable column is the one number the operator has to reason about before
+// typing anything, so it carries the box equivalent in brackets under the piece
+// count. Single-piece packs and a fully-returned line have no meaningful
+// breakdown, so those stay as a plain piece count.
+function ReturnableCell({ qty, qpb }) {
+  const breakdown = qty > 0 ? formatBoxBreakdown(qty, qpb) : null
+  return (
+    <td className="px-4 py-3 text-right tabular-nums align-top">
+      <div>{qty} pcs</div>
+      {breakdown && <div className="text-xs text-slate-400">({breakdown})</div>}
+    </td>
+  )
 }
 
 export default function SalesReturnPage() {
@@ -29,13 +43,22 @@ export default function SalesReturnPage() {
   const [returnDate, setReturnDate] = useState(today())
   const [dateError, setDateError] = useState(null)
   const [returnableItems, setReturnableItems] = useState([])
-  const [quantities, setQuantities] = useState({})
+  // Per sale line: { boxes, looseUnits }. Kept as a split (not a piece total) so
+  // the operator can enter a whole box or a few loose pieces independently.
+  const [returnEntries, setReturnEntries] = useState({})
+  // Set when the open modal is editing an existing credit note. Its own rows are
+  // excluded from the returnable cap so a line can be changed, not just viewed.
+  const [editingReturnId, setEditingReturnId] = useState(null)
+  const [editingReturnNo, setEditingReturnNo] = useState(null)
 
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const [savedReturn, setSavedReturn] = useState(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [resultDialog, setResultDialog] = useState(null)
+
+  const [deleteTarget, setDeleteTarget] = useState(null)
+  const [deleting, setDeleting] = useState(false)
 
   // ---- Return History ----
   const [historyCustomers, setHistoryCustomers] = useState([])
@@ -128,15 +151,92 @@ export default function SalesReturnPage() {
     }
   }
 
-  async function handleSelectSale(item) {
+  // Rebuild the box/loose inputs from a saved credit note. If the product's pack
+  // size has been changed since the note was raised, the stored split no longer
+  // multiplies out to the stored piece count — so fall back to "all loose", which
+  // always sums to exactly the right number of pieces.
+  function prefillEntries(returnItems, returnable) {
+    const qpbBySaleItem = new Map(returnable.map((i) => [i.sale_item_id, i.qty_per_box || 1]))
+    const entries = {}
+    for (const item of returnItems) {
+      const currentQpb = qpbBySaleItem.get(item.sale_item_id) || 1
+      const splitStillValid = (item.qty_per_box || 1) === currentQpb
+      entries[item.sale_item_id] = splitStillValid
+        ? { boxes: item.boxes || 0, looseUnits: item.loose_units || 0 }
+        : { boxes: 0, looseUnits: item.quantity }
+    }
+    return entries
+  }
+
+  function resetReturnForm() {
+    setSale(null)
+    setReturnableItems([])
+    setReturnEntries({})
+    setDateError(null)
+    setEditingReturnId(null)
+    setEditingReturnNo(null)
+  }
+
+  async function handleSelectSale(item, options = {}) {
+    const { excludeReturnId = null, prefillItems = null, date = null } = options
     setSale(item)
     setMatches([])
     setError(null)
     setDateError(null)
-    setReturnDate(item.sale_date > today() ? item.sale_date : today())
-    const items = await salesReturnsApi.returnableItems(item.id)
+    setEditingReturnId(excludeReturnId)
+    setEditingReturnNo(options.returnNo ?? null)
+    setReturnDate(date || (item.sale_date > today() ? item.sale_date : today()))
+    const items = await salesReturnsApi.returnableItems(item.id, excludeReturnId ?? undefined)
     setReturnableItems(items)
-    setQuantities({})
+    setReturnEntries(prefillItems ? prefillEntries(prefillItems, items) : {})
+  }
+
+  async function handleHistoryEdit(returnId) {
+    setError(null)
+    try {
+      const creditNote = await salesReturnsApi.get(returnId)
+      const saleRecord = await salesApi.get(creditNote.sale_id)
+      await handleSelectSale(saleRecord, {
+        excludeReturnId: returnId,
+        prefillItems: creditNote.items,
+        date: creditNote.return_date,
+        returnNo: creditNote.return_no,
+      })
+      setNewReturnOpen(true)
+    } catch (err) {
+      setError(extractErrorMessage(err))
+    }
+  }
+
+  function handleHistoryDelete(creditNote) {
+    setError(null)
+    setDeleteTarget(creditNote)
+  }
+
+  async function confirmDeleteReturn() {
+    if (!deleteTarget) return
+    const target = deleteTarget
+    setDeleteTarget(null)
+    setDeleting(true)
+    try {
+      await salesReturnsApi.remove(target.id)
+      setHistoryPage(1)
+      setHistoryAppliedFilters({})
+      await loadHistory()
+      setResultDialog({
+        variant: 'success',
+        title: 'Sales Return Deleted',
+        message: `Return ${target.return_no} has been deleted. The returned quantity is available to return again.`,
+      })
+    } catch (err) {
+      setResultDialog({
+        variant: 'error',
+        title: 'Failed to Delete Sales Return',
+        message: extractErrorMessage(err),
+      })
+    } finally {
+      setDeleting(false)
+    }
   }
 
   function handleReturnDateChange(value) {
@@ -160,20 +260,39 @@ export default function SalesReturnPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  function handleQuantityChange(saleItemId, value) {
-    setQuantities((prev) => ({ ...prev, [saleItemId]: value }))
+  function handleEntryChange(saleItemId, field, value) {
+    setReturnEntries((prev) => ({
+      ...prev,
+      [saleItemId]: {
+        boxes: prev[saleItemId]?.boxes ?? 0,
+        looseUnits: prev[saleItemId]?.looseUnits ?? 0,
+        [field]: Math.max(0, Number(value) || 0),
+      },
+    }))
+  }
+
+  // Raw piece total from the box/loose split, with no clamping — an over-return
+  // is reported as an error rather than silently reduced, so the operator sees
+  // the mistake instead of a quietly under-credited return.
+  function lineQuantity(item) {
+    const entry = returnEntries[item.sale_item_id]
+    if (!entry) return 0
+    const qpb = item.qty_per_box || 1
+    return entry.boxes * qpb + entry.looseUnits
   }
 
   const lines = returnableItems
     .map((item) => {
-      const qty = Number(quantities[item.sale_item_id]) || 0
+      const qty = lineQuantity(item)
       // Use the backend-computed per-unit taxable/GST (already price_inc_gst-
       // and discount-aware) so the preview always matches the saved credit note.
       const unitTaxable = item.unit_taxable ?? qtyPriceTaxable(item)
       const gst = qty * (item.unit_gst ?? unitTaxable * item.gst_percent / 100)
       const taxable = qty * unitTaxable
       const grand = taxable + gst
-      return { ...item, qty, taxable, gst, grand }
+      const qpb = item.qty_per_box || 1
+      const entry = returnEntries[item.sale_item_id]
+      return { ...item, qty, taxable, gst, grand, qpb, boxes: entry?.boxes ?? 0, looseUnits: entry?.looseUnits ?? 0 }
     })
     .filter((l) => l.qty > 0)
 
@@ -181,10 +300,32 @@ export default function SalesReturnPage() {
   const gstTotal = lines.reduce((sum, l) => sum + l.gst, 0)
   const grandTotal = lines.reduce((sum, l) => sum + l.grand, 0)
 
+  // Why a touched line is still invalid, or null when it is fine / untouched.
+  // Only two things are actually wrong: nothing entered, or more pieces than
+  // were sold. How the pieces are split between the two boxes is NOT checked —
+  // a customer can hand back 18 loose pieces out of a 12-piece carton, and the
+  // operator has no way to know that, so the system must not forbid it.
+  function lineError(item) {
+    const entry = returnEntries[item.sale_item_id]
+    if (!entry || (entry.boxes === 0 && entry.looseUnits === 0)) return null
+    const qty = entry.boxes * (item.qty_per_box || 1) + entry.looseUnits
+    if (qty <= 0) return 'Enter Boxes or Loose Pieces.'
+    if (qty > item.returnable_quantity) return `Only ${item.returnable_quantity} pcs left to return.`
+    return null
+  }
+
+  // Touched-but-wrong lines. They still show their amount in the preview (so the
+  // operator sees what they typed), but saving is blocked until they are fixed.
+  const invalidLines = returnableItems.filter((item) => lineError(item) != null)
+
   function handleSave() {
     setError(null)
     if (sale && returnDate < sale.sale_date) {
       setDateError('Return date cannot be earlier than the original sale date.')
+      return
+    }
+    if (invalidLines.length > 0) {
+      setError('Fix the highlighted return quantity before saving.')
       return
     }
     if (lines.length === 0) {
@@ -197,30 +338,37 @@ export default function SalesReturnPage() {
   async function doSave() {
     setConfirmOpen(false)
     setSaving(true)
+    const isUpdate = editingReturnId != null
+    const payload = {
+      return_date: returnDate,
+      items: lines.map((l) => ({
+        sale_item_id: l.sale_item_id,
+        boxes: l.boxes,
+        loose_units: l.looseUnits,
+      })),
+    }
     try {
-      const result = await salesReturnsApi.create({
-        sale_id: sale.id,
-        return_date: returnDate,
-        items: lines.map((l) => ({ sale_item_id: l.sale_item_id, quantity: l.qty })),
-      })
+      const result = isUpdate
+        ? await salesReturnsApi.update(editingReturnId, payload)
+        : await salesReturnsApi.create({ sale_id: sale.id, ...payload })
       setSavedReturn(result)
       setNewReturnOpen(false)
-      setSale(null)
-      setReturnableItems([])
-      setQuantities({})
+      resetReturnForm()
       setQuery('')
       setHistoryPage(1)
       setHistoryAppliedFilters({})
       await loadHistory()
       setResultDialog({
         variant: 'success',
-        title: 'Sales Return Saved Successfully',
-        message: `Return ${result.return_no} has been saved successfully against invoice ${result.invoice_no}.`,
+        title: isUpdate ? 'Sales Return Updated Successfully' : 'Sales Return Saved Successfully',
+        message: isUpdate
+          ? `Return ${result.return_no} has been updated successfully.`
+          : `Return ${result.return_no} has been saved successfully against invoice ${result.invoice_no}.`,
       })
     } catch (err) {
       setResultDialog({
         variant: 'error',
-        title: 'Failed to Save Sales Return',
+        title: isUpdate ? 'Failed to Update Sales Return' : 'Failed to Save Sales Return',
         message: extractErrorMessage(err),
       })
       setError(extractErrorMessage(err))
@@ -260,14 +408,18 @@ export default function SalesReturnPage() {
         )}
 
         {newReturnOpen && (
-          <Modal 
-            size={sale ? 'xl' : undefined} 
-            title={sale ? 'Process Sales Return' : 'Find Sale by Invoice Number'} 
+          <Modal
+            size={sale ? 'xl' : undefined}
+            title={
+              !sale
+                ? 'Find Sale by Invoice Number'
+                : editingReturnId
+                  ? 'Edit Sales Return'
+                  : 'Process Sales Return'
+            }
             onClose={() => {
               setNewReturnOpen(false)
-              setSale(null)
-              setReturnableItems([])
-              setDateError(null)
+              resetReturnForm()
             }}
           >
             {!sale ? (
@@ -325,10 +477,18 @@ export default function SalesReturnPage() {
               <div className="space-y-5 p-1">
                 <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-slate-50 p-4 ring-1 ring-slate-900/5">
                   <div>
-                    <p className="text-xs uppercase tracking-wide text-slate-400">Returning against</p>
+                    <p className="text-xs uppercase tracking-wide text-slate-400">
+                      {editingReturnId ? 'Editing return' : 'Returning against'}
+                    </p>
                     <p className="mt-1 text-base font-semibold text-slate-800">
                       {sale.invoice_no} <span className="font-normal text-slate-400">· {sale.customer_name}</span>
                     </p>
+                    {editingReturnId && (
+                      <p className="mt-1 text-xs text-amber-600">
+                        Credit note {editingReturnNo} keeps its number — only the date, products and
+                        amount are changing.
+                      </p>
+                    )}
                   </div>
                   <div className="flex items-center gap-3">
                     <div>
@@ -342,18 +502,16 @@ export default function SalesReturnPage() {
                       />
                       {dateError && <p className="mt-1 text-xs text-rose-500">{dateError}</p>}
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSale(null)
-                        setReturnableItems([])
-                        setDateError(null)
-                      }}
-                      className="mt-6 flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
-                    >
-                      <CornerDownLeft size={14} />
-                      Back
-                    </button>
+                    {!editingReturnId && (
+                      <button
+                        type="button"
+                        onClick={resetReturnForm}
+                        className="mt-6 flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
+                      >
+                        <CornerDownLeft size={14} />
+                        Back
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -366,7 +524,7 @@ export default function SalesReturnPage() {
                           <th className="px-4 py-3 text-right font-medium">Sold Qty</th>
                           <th className="px-4 py-3 text-right font-medium">Already Returned</th>
                           <th className="px-4 py-3 text-right font-medium">Returnable</th>
-                          <th className="px-4 py-3 text-right font-medium">Return Qty</th>
+                          <th className="px-4 py-3 text-right font-medium">Return Qty (Boxes + Loose)</th>
                           <th className="px-4 py-3 text-right font-medium">Return Amount</th>
                         </tr>
                       </thead>
@@ -379,10 +537,17 @@ export default function SalesReturnPage() {
                           </tr>
                         )}
                         {returnableItems.map((item) => {
-                          const qty = Number(quantities[item.sale_item_id]) || 0
+                          const qpb = item.qty_per_box || 1
+                          const entry = returnEntries[item.sale_item_id]
+                          const boxes = entry?.boxes ?? 0
+                          const looseUnits = entry?.looseUnits ?? 0
+                          const qty = boxes * qpb + looseUnits
                           const unitTaxable = item.unit_taxable ?? qtyPriceTaxable(item)
                           const unitGst = item.unit_gst ?? (unitTaxable * item.gst_percent) / 100
                           const grand = qty * (unitTaxable + unitGst)
+                          const rowError = lineError(item)
+                          const maxBoxes = Math.floor(item.returnable_quantity / qpb)
+                          const disabled = item.returnable_quantity === 0
                           return (
                             <tr key={item.sale_item_id} className="border-b border-slate-100 text-slate-700 last:border-0 hover:bg-slate-50/60">
                               <td className="px-4 py-3 font-medium">{item.product_name}</td>
@@ -390,17 +555,47 @@ export default function SalesReturnPage() {
                               <td className="px-4 py-3 text-right tabular-nums text-slate-500">
                                 {item.already_returned_quantity} pcs
                               </td>
-                              <td className="px-4 py-3 text-right tabular-nums">{item.returnable_quantity} pcs</td>
-                              <td className="px-4 py-3 text-right">
-                                <input
-                                  type="number"
-                                  min="0"
-                                  max={item.returnable_quantity}
-                                  disabled={item.returnable_quantity === 0}
-                                  value={quantities[item.sale_item_id] || ''}
-                                  onChange={(e) => handleQuantityChange(item.sale_item_id, e.target.value)}
-                                  className="w-20 rounded-lg border border-slate-200 px-2 py-1 text-right text-sm focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100 disabled:bg-slate-50"
-                                />
+                              <ReturnableCell qty={item.returnable_quantity} qpb={qpb} />
+                              <td className="px-4 py-3">
+                                <div className="flex items-center justify-end gap-2">
+                                  <div className="text-right">
+                                    <p className="mb-0.5 text-[10px] uppercase tracking-wide text-slate-400">Boxes</p>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      step="1"
+                                      max={maxBoxes}
+                                      disabled={disabled}
+                                      value={boxes || ''}
+                                      onChange={(e) => handleEntryChange(item.sale_item_id, 'boxes', e.target.value)}
+                                      className={`w-16 rounded-lg border px-2 py-1 text-right text-sm focus:outline-none focus:ring-2 disabled:bg-slate-50 ${
+                                        rowError
+                                          ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-100'
+                                          : 'border-slate-200 focus:border-brand-400 focus:ring-brand-100'
+                                      }`}
+                                    />
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="mb-0.5 text-[10px] uppercase tracking-wide text-slate-400">Loose</p>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      step="1"
+                                      disabled={disabled}
+                                      value={looseUnits || ''}
+                                      onChange={(e) => handleEntryChange(item.sale_item_id, 'looseUnits', e.target.value)}
+                                      className={`w-16 rounded-lg border px-2 py-1 text-right text-sm focus:outline-none focus:ring-2 disabled:bg-slate-50 ${
+                                        rowError
+                                          ? 'border-rose-300 focus:border-rose-400 focus:ring-rose-100'
+                                          : 'border-slate-200 focus:border-brand-400 focus:ring-brand-100'
+                                      }`}
+                                    />
+                                  </div>
+                                  <span className="w-24 text-right text-xs tabular-nums text-slate-500">
+                                    {qty > 0 ? `= ${qty} pcs` : ''}
+                                  </span>
+                                </div>
+                                {rowError && <p className="mt-1 text-right text-xs text-rose-500">{rowError}</p>}
                               </td>
                               <td className="px-4 py-3 text-right font-semibold tabular-nums text-brand-600">
                                 {formatCurrency3(grand)}
@@ -437,7 +632,7 @@ export default function SalesReturnPage() {
                     disabled={saving}
                     className="rounded-lg bg-brand-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700 disabled:opacity-60"
                   >
-                    {saving ? 'Adding...' : 'Add Return'}
+                    {saving ? 'Saving...' : editingReturnId ? 'Update Return' : 'Add Return'}
                   </button>
                 </div>
               </div>
@@ -520,16 +715,34 @@ export default function SalesReturnPage() {
                       <td className="px-5 py-3.5">{r.customer_name || <span className="text-slate-300">—</span>}</td>
                       <td className="px-5 py-3.5">{formatDDMMYYYY(r.return_date)}</td>
                       <td className="px-5 py-3.5 text-right font-semibold tabular-nums">{formatCurrency3(r.amount)}</td>
-                      <td className="px-5 py-3.5 text-right">
-                        <button
-                          type="button"
-                          onClick={() => handleHistoryView(r.id)}
-                          aria-label={`View ${r.return_no}`}
-                          className="inline-flex items-center gap-1.5 rounded-md bg-brand-50 px-2.5 py-1.5 text-xs font-medium text-brand-700 transition hover:bg-brand-100"
-                        >
-                          <Eye size={14} /> View
-                        </button>
-                      </td>
+                <td className="px-5 py-3.5 text-right">
+                  <div className="flex items-center justify-end gap-1">
+                    <button
+                      type="button"
+                      onClick={() => handleHistoryEdit(r.id)}
+                      aria-label={`Edit ${r.return_no}`}
+                      className="inline-flex items-center gap-1.5 rounded-md bg-slate-100 px-2.5 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-200"
+                    >
+                      <Pencil size={14} /> Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleHistoryDelete(r)}
+                      aria-label={`Delete ${r.return_no}`}
+                      className="inline-flex items-center gap-1.5 rounded-md bg-rose-50 px-2.5 py-1.5 text-xs font-medium text-rose-700 transition hover:bg-rose-100"
+                    >
+                      <Trash2 size={14} /> Delete
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleHistoryView(r.id)}
+                      aria-label={`View ${r.return_no}`}
+                      className="inline-flex items-center gap-1.5 rounded-md bg-brand-50 px-2.5 py-1.5 text-xs font-medium text-brand-700 transition hover:bg-brand-100"
+                    >
+                      <Eye size={14} /> View
+                    </button>
+                  </div>
+                </td>
                     </tr>
                   ))}
               </tbody>
@@ -615,7 +828,12 @@ export default function SalesReturnPage() {
                     {historyViewing.items.map((item) => (
                       <tr key={item.id} className="border-b border-slate-50 text-slate-700 last:border-0">
                         <td className="px-4 py-2.5 font-medium">{item.product_name}</td>
-                        <td className="px-4 py-2.5 text-right tabular-nums">{item.quantity} pcs</td>
+                        <td className="px-4 py-2.5 text-right tabular-nums align-top">
+                          <div>{formatBoxBreakdown(item.quantity, item.qty_per_box) || `${item.quantity} pcs`}</div>
+                          {item.qty_per_box > 1 && (
+                            <div className="text-xs text-slate-400">({item.quantity} pcs)</div>
+                          )}
+                        </td>
                         <td className="px-4 py-2.5 text-right tabular-nums">{formatCurrency3(item.taxable_amount)}</td>
                         <td className="px-4 py-2.5 text-right tabular-nums">{formatCurrency3(item.gst_amount)}</td>
                         <td className="px-4 py-2.5 text-right font-semibold tabular-nums">
@@ -650,12 +868,28 @@ export default function SalesReturnPage() {
 
       <ConfirmDialog
         open={confirmOpen}
-        title="Save Sales Return?"
-        message="Are you sure you want to save this sales return?"
-        confirmLabel="Add"
+        title={editingReturnId ? 'Update Sales Return?' : 'Save Sales Return?'}
+        message={
+          editingReturnId
+            ? `Are you sure you want to update return ${editingReturnNo}?`
+            : 'Are you sure you want to save this sales return?'
+        }
+        confirmLabel={editingReturnId ? 'Update' : 'Add'}
         onCancel={() => setConfirmOpen(false)}
         onConfirm={doSave}
         busy={saving}
+      />
+      <ConfirmDialog
+        open={deleteTarget != null}
+        title="Delete Sales Return?"
+        message={
+          deleteTarget
+            ? `Are you sure you want to delete return ${deleteTarget.return_no}? The ${deleteTarget.quantity} returned unit(s) will become available to return again. This action cannot be undone.`
+            : ''
+        }
+        onCancel={() => setDeleteTarget(null)}
+        onConfirm={confirmDeleteReturn}
+        busy={deleting}
       />
       <AlertDialog
         open={resultDialog != null}

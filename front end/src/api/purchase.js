@@ -10,4 +10,5 @@ export const purchasesApi = {
   get: async (id) => (await client.get(`/${id}`)).data,
   create: async (payload) => (await client.post('', payload)).data,
   update: async (id, payload) => (await client.put(`/${id}`, payload)).data,
+  remove: async (id) => (await client.delete(`/${id}`)).data,
 }

@@ -55,6 +55,8 @@ export default function ItemForm({
   availableQtyFn = null,
   autoFillPriceOnDetailChange = false,
   enableIgst = false,
+  hideLooseUnits = false,
+  pricePerBox = false,
   preserveOnReset = [],
   editingItem = null,
   onUpdate = null,
@@ -171,11 +173,12 @@ export default function ItemForm({
         const first = details[0]
         if (!first) return { ...f, product_detail_id: '', barcode: '' }
         if (autoFillPriceOnDetailChange) {
+          const fillPrice = pricePerBox ? first.mrp : first.mrp / first.qty_per_box
           return syncBarcodeToCode(
             {
               ...f,
               product_detail_id: String(first.id),
-              [priceFieldName]: String(round3(first.mrp / first.qty_per_box)),
+              [priceFieldName]: String(round3(fillPrice)),
             },
             first.code,
           )
@@ -244,14 +247,15 @@ export default function ItemForm({
   const qtyPerBox = selectedDetail?.qty_per_box || 1
 
   const boxes = Number(form.boxes) || 0
-  const looseUnits = Number(form.looseUnits) || 0
+  const looseUnits = hideLooseUnits ? 0 : Number(form.looseUnits) || 0
   const quantity = boxes * qtyPerBox + looseUnits
   const price = Number(form[priceFieldName]) || 0
   const discountPercent = Number(form.discount_percent) || 0
   const gstPercent = Number(form.gst_percent) || 0
   const isIgst = enableIgst && form.is_igst
 
-  const gross = quantity * price
+  // Purchase bills price per box; sales still bill per piece.
+  const gross = (pricePerBox ? boxes : quantity) * price
   const net = gross * (1 - discountPercent / 100)
   const taxableAmount = form.price_inc_gst ? net / (1 + gstPercent / 100) : net
   const gstAmount = (taxableAmount * gstPercent) / 100
@@ -279,14 +283,18 @@ export default function ItemForm({
 
   function handleDetailChange(value) {
     const detail = productDetails.find((d) => d.id === Number(value))
+    const fillPrice =
+      autoFillPriceOnDetailChange && detail
+        ? pricePerBox
+          ? detail.mrp
+          : detail.mrp / detail.qty_per_box
+        : null
     setForm((f) =>
       syncBarcodeToCode(
         {
           ...f,
           product_detail_id: value,
-          ...(autoFillPriceOnDetailChange && detail
-            ? { [priceFieldName]: String(round3(detail.mrp / detail.qty_per_box)) }
-            : {}),
+          ...(fillPrice != null ? { [priceFieldName]: String(round3(fillPrice)) } : {}),
         },
         detail?.code,
       ),
@@ -321,7 +329,11 @@ export default function ItemForm({
         ? String(Number(product.cgst_percent) + Number(product.sgst_percent))
         : null
     const pricePatch = autoFillPriceOnDetailChange
-      ? { [priceFieldName]: String(round3(match.mrp / match.qty_per_box)) }
+      ? {
+          [priceFieldName]: String(
+            round3(pricePerBox ? match.mrp : match.mrp / match.qty_per_box),
+          ),
+        }
       : {}
     setForm((f) => ({
       ...f,
@@ -336,7 +348,13 @@ export default function ItemForm({
   function handleAdd() {
     const errors = []
     if (!form.product_id) errors.push('Select a product.')
-    if (quantity <= 0) errors.push('Enter Boxes or Loose Pieces — total quantity must be greater than 0.')
+    if (quantity <= 0) {
+      errors.push(
+        hideLooseUnits
+          ? 'Enter Boxes — quantity must be greater than 0.'
+          : 'Enter Boxes or Loose Pieces — total quantity must be greater than 0.',
+      )
+    }
     if (form[priceFieldName] === '' || price < 0) errors.push(priceErrorMsg)
     if (errors.length > 0 || insufficientStock) {
       setFormError(errors.length > 0 ? errors.join(' ') : null)
@@ -354,7 +372,7 @@ export default function ItemForm({
       code: detail?.code,
       quantity,
       boxes: Number(form.boxes) || 0,
-      looseUnits: Number(form.looseUnits) || 0,
+      looseUnits: hideLooseUnits ? 0 : Number(form.looseUnits) || 0,
       free_quantity: 0,
       uom: form.uom,
       [priceFieldName]: price,
@@ -488,21 +506,23 @@ export default function ItemForm({
           />
         </div>
 
-        <div>
-          <FieldLabel>Loose Pieces</FieldLabel>
-          <TextInput
-            type="number"
-            min="0"
-            value={form.looseUnits}
-            onFocus={(e) => {
-              if (e.target.value === '0') setForm((f) => ({ ...f, looseUnits: '' }))
-            }}
-            onBlur={() => {
-              if (form.looseUnits === '') setForm((f) => ({ ...f, looseUnits: '0' }))
-            }}
-            onChange={(e) => setForm({ ...form, looseUnits: e.target.value })}
-          />
-        </div>
+        {!hideLooseUnits && (
+          <div>
+            <FieldLabel>Loose Pieces</FieldLabel>
+            <TextInput
+              type="number"
+              min="0"
+              value={form.looseUnits}
+              onFocus={(e) => {
+                if (e.target.value === '0') setForm((f) => ({ ...f, looseUnits: '' }))
+              }}
+              onBlur={() => {
+                if (form.looseUnits === '') setForm((f) => ({ ...f, looseUnits: '0' }))
+              }}
+              onChange={(e) => setForm({ ...form, looseUnits: e.target.value })}
+            />
+          </div>
+        )}
 
         <div>
           <LockedLabel>Total Qty (pieces)</LockedLabel>
