@@ -23,3 +23,10 @@ front end/*.local
 *.njsproj
 *.sln
 *.sw?
+
+# Local agent / deploy scratch
+AGENTS.md
+deploy-remote.sh
+_q_qpb.py
+*.zip
+*.tar.gz
